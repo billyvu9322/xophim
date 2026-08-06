@@ -196,95 +196,102 @@ function WatchView({
           />
         </div>
 
-        {/* title + meta */}
-        <div className="mt-6 space-y-3">
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">{movie.name}</h1>
-          {movie.originName && <p className="text-sm text-muted">{movie.originName}</p>}
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {movie.year != null && <Meta>{movie.year}</Meta>}
-            {movie.quality && <Meta>{movie.quality}</Meta>}
-            {movie.time && <Meta>{movie.time}</Meta>}
-            {movie.episodeCurrent && <Meta>{movie.episodeCurrent}</Meta>}
-            {movie.score.imdb != null && (
-              <span className="flex items-center gap-1 rounded bg-black/50 px-2 py-1 text-white">
-                <Star className="h-3 w-3 fill-gold text-gold" /> IMDb {movie.score.imdb.toFixed(1)}
-              </span>
-            )}
-            {movie.score.tmdb != null && (
-              <span className="flex items-center gap-1 rounded bg-black/50 px-2 py-1 text-white">
-                <Star className="h-3 w-3 fill-gold text-gold" /> TMDb {movie.score.tmdb.toFixed(1)}
-              </span>
-            )}
-            {badges.map((b) => (
-              <span
-                key={b.label}
-                className={cn(
-                  "rounded-sm px-1.5 py-1 font-semibold text-[#111]",
-                  b.kind === "sub" ? "bg-sub" : "bg-dub",
+        {/* details: left content + right rail (Chọn Server + Đánh Giá) */}
+        <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_340px]">
+          {/* left column */}
+          <div className="min-w-0 space-y-6">
+            <div className="space-y-3">
+              <h1 className="text-2xl font-bold text-white sm:text-3xl">{movie.name}</h1>
+              {movie.originName && <p className="text-sm text-muted">{movie.originName}</p>}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {movie.year != null && <Meta>{movie.year}</Meta>}
+                {movie.quality && <Meta>{movie.quality}</Meta>}
+                {movie.time && <Meta>{movie.time}</Meta>}
+                {movie.episodeCurrent && <Meta>{movie.episodeCurrent}</Meta>}
+                {movie.score.imdb != null && (
+                  <span className="flex items-center gap-1 rounded bg-black/50 px-2 py-1 text-white">
+                    <Star className="h-3 w-3 fill-gold text-gold" /> IMDb {movie.score.imdb.toFixed(1)}
+                  </span>
                 )}
-              >
-                {b.label}
-              </span>
-            ))}
-          </div>
-          {movie.categories.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {movie.categories.map((c) => (
-                <span key={c.slug} className="rounded-pill bg-chip px-3 py-1 text-xs text-silver">
-                  {c.name}
-                </span>
-              ))}
+                {movie.score.tmdb != null && (
+                  <span className="flex items-center gap-1 rounded bg-black/50 px-2 py-1 text-white">
+                    <Star className="h-3 w-3 fill-gold text-gold" /> TMDb {movie.score.tmdb.toFixed(1)}
+                  </span>
+                )}
+                {badges.map((b) => (
+                  <span
+                    key={b.label}
+                    className={cn(
+                      "rounded-sm px-1.5 py-1 font-semibold text-[#111]",
+                      b.kind === "sub" ? "bg-sub" : "bg-dub",
+                    )}
+                  >
+                    {b.label}
+                  </span>
+                ))}
+              </div>
+              {movie.categories.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {movie.categories.map((c) => (
+                    <span key={c.slug} className="rounded-pill bg-chip px-3 py-1 text-xs text-silver">
+                      {c.name}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* server selector */}
-        <ServerSelector groups={groups} activeIdx={serverIdx} onSelect={selectServer} />
+            {/* episode grid (series) */}
+            {isSeries && currentServer && (
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold text-white">Danh Sách Tập</h2>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
+                  {currentServer.items.map((ep) => (
+                    <button
+                      key={ep.slug}
+                      onClick={() => setEpisodeSlug(ep.slug)}
+                      className={cn(
+                        "truncate rounded-md px-2 py-2 text-sm transition-colors",
+                        ep.slug === currentEpisode?.slug
+                          ? "bg-gold font-medium text-[#111]"
+                          : "bg-elevated text-silver hover:bg-chip hover:text-white",
+                      )}
+                    >
+                      {ep.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {/* episode grid (series) */}
-        {isSeries && currentServer && (
-          <div className="mt-6 space-y-2">
-            <h2 className="text-lg font-semibold text-white">Danh Sách Tập</h2>
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
-              {currentServer.items.map((ep) => (
-                <button
-                  key={ep.slug}
-                  onClick={() => setEpisodeSlug(ep.slug)}
-                  className={cn(
-                    "truncate rounded-md px-2 py-2 text-sm transition-colors",
-                    ep.slug === currentEpisode?.slug
-                      ? "bg-gold font-medium text-[#111]"
-                      : "bg-elevated text-silver hover:bg-chip hover:text-white",
-                  )}
-                >
-                  {ep.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* synopsis + cast */}
-        <div className="mt-8 grid gap-8 lg:grid-cols-[2fr_1fr]">
-          <div className="space-y-4">
             {movie.content && (
               <div className="space-y-2">
                 <h2 className="text-lg font-semibold text-white">Nội Dung</h2>
                 <p className="text-sm leading-relaxed text-silver">{stripHtml(movie.content)}</p>
               </div>
             )}
+
+            <dl className="space-y-2 text-sm">
+              {movie.directors.length > 0 && (
+                <InfoRow label="Đạo diễn" value={movie.directors.join(", ")} />
+              )}
+              {movie.actors.length > 0 && (
+                <InfoRow label="Diễn viên" value={movie.actors.join(", ")} />
+              )}
+              {movie.countries.length > 0 && (
+                <InfoRow label="Quốc gia" value={movie.countries.map((c) => c.name).join(", ")} />
+              )}
+              {movie.status && <InfoRow label="Trạng thái" value={movie.status} />}
+            </dl>
+          </div>
+
+          {/* right rail */}
+          <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+            <div className="rounded-lg bg-chrome p-4">
+              <ServerSelector groups={groups} activeIdx={serverIdx} onSelect={selectServer} />
+            </div>
             <RatingBlock slug={slug} />
           </div>
-          <dl className="space-y-2 text-sm">
-            {movie.directors.length > 0 && (
-              <InfoRow label="Đạo diễn" value={movie.directors.join(", ")} />
-            )}
-            {movie.actors.length > 0 && <InfoRow label="Diễn viên" value={movie.actors.join(", ")} />}
-            {movie.countries.length > 0 && (
-              <InfoRow label="Quốc gia" value={movie.countries.map((c) => c.name).join(", ")} />
-            )}
-            {movie.status && <InfoRow label="Trạng thái" value={movie.status} />}
-          </dl>
         </div>
 
         {/* comments */}
@@ -359,7 +366,7 @@ function ServerSelector({
   if (!hasAny) return null;
 
   return (
-    <div className="mt-6 space-y-3">
+    <div className="space-y-3">
       <h2 className="text-lg font-semibold text-white">Chọn Server</h2>
       {tracks.map((t) =>
         groups[t].length === 0 ? null : (

@@ -95,31 +95,34 @@ export function RegisterPage() {
     <AuthCard heading="Đăng Ký">
       <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
         {/* Username */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
+          <label className="block text-sm text-silver">Tên đăng nhập</label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Tên đăng nhập"
+            placeholder="Nhập tên đăng nhập"
             required
             className="w-full h-11 px-3 bg-elevated rounded-md text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
           />
         </div>
 
         {/* Email */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
+          <label className="block text-sm text-silver">Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
+            placeholder="Nhập email"
             required
             className="w-full h-11 px-3 bg-elevated rounded-md text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
           />
         </div>
 
         {/* Password */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
+          <label className="block text-sm text-silver">Mật khẩu</label>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -128,7 +131,7 @@ export function RegisterPage() {
                 setPassword(e.target.value);
                 validateConfirm(e.target.value, confirm);
               }}
-              placeholder="Mật khẩu"
+              placeholder="Nhập mật khẩu"
               required
               className="w-full h-11 px-3 pr-10 bg-elevated rounded-md text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
             />
@@ -145,7 +148,8 @@ export function RegisterPage() {
         </div>
 
         {/* Confirm password */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
+          <label className="block text-sm text-silver">Nhập lại mật khẩu</label>
           <div className="relative">
             <input
               type={showConfirm ? "text" : "password"}

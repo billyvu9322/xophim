@@ -143,8 +143,9 @@ function Spotlight({ movies }: { movies: Movie[] }) {
         alt={m.name}
         className="absolute inset-0 h-full w-full object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/80 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-t from-canvas to-transparent" />
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/85 to-canvas/20" />
+      <div className="absolute inset-0 bg-gradient-to-t from-canvas via-canvas/50 to-transparent" />
 
       <div className="relative mx-auto flex h-full max-w-[1600px] items-end px-4 pb-12">
         <div className="max-w-xl space-y-4">

@@ -79,25 +79,27 @@ export function LoginPage() {
     <AuthCard heading="Đăng Nhập">
       <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
         {/* Username or Email */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
+          <label className="block text-sm text-silver">Tên đăng nhập hoặc Email</label>
           <input
             type="text"
             value={usernameOrEmail}
             onChange={(e) => setUsernameOrEmail(e.target.value)}
-            placeholder="Tên đăng nhập hoặc Email"
+            placeholder="Nhập tên đăng nhập hoặc email"
             required
             className="w-full h-11 px-3 bg-elevated rounded-md text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
           />
         </div>
 
         {/* Password */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
+          <label className="block text-sm text-silver">Mật khẩu</label>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mật khẩu"
+              placeholder="Nhập mật khẩu"
               required
               className="w-full h-11 px-3 pr-10 bg-elevated rounded-md text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
             />
