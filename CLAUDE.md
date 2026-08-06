@@ -11,7 +11,7 @@ XoPhim — movie streaming website. Currently a **scaffold only**: API has `GET 
 ## Commands (repo root)
 
 ```bash
-pnpm dev            # api (:6001) + web (:5173) in parallel via turbo
+pnpm dev            # api (:5243) + web (:5173) in parallel via turbo
 pnpm build          # build all
 pnpm typecheck      # tsc across workspaces
 
@@ -40,7 +40,7 @@ There is **one** deployable artifact, not two. The [Dockerfile](Dockerfile) buil
 - The SPA fallback serves `index.html` for any non-`/v1`, non-`/assets/` GET. Keep new API routes under `/v1` so they don't get swallowed by the fallback.
 - PostgreSQL is **external** (not containerized) — reached via `host.docker.internal` from the container.
 
-In dev the two run separately: Vite proxies `/v1` → `http://localhost:6001` ([apps/web/vite.config.ts](apps/web/vite.config.ts)), so the SPA always uses a relative `/v1` base and CORS is avoided.
+In dev the two run separately: Vite proxies `/v1` → `http://localhost:5243` ([apps/web/vite.config.ts](apps/web/vite.config.ts)), so the SPA always uses a relative `/v1` base and CORS is avoided.
 
 ### API conventions
 

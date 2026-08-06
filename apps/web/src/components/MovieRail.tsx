@@ -1,4 +1,8 @@
-import type { ReactNode } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import type { Swiper as SwiperInstance } from "swiper";
+import "swiper/css";
 import { MovieCard, type MovieCardData } from "./MovieCard";
 
 interface MovieRailProps {
@@ -12,20 +16,47 @@ interface MovieRailProps {
 // A labeled horizontal scroller of posters. Fixed-width cells so posters keep a
 // uniform 2:3 and the rail scrolls sideways on overflow.
 export function MovieRail({ title, movies, ranked, action }: MovieRailProps) {
+  const [swiper, setSwiper] = useState<SwiperInstance | null>(null);
+
   if (movies.length === 0) return null;
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">{title}</h2>
-        {action}
+        <div className="flex items-center gap-2">
+          {action}
+          <button
+            type="button"
+            aria-label="Cuộn phim sang trái"
+            onClick={() => swiper?.slidePrev()}
+            className="hidden rounded-full bg-elevated p-2 text-silver transition-colors hover:bg-chip hover:text-white sm:grid"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Cuộn phim sang phải"
+            onClick={() => swiper?.slideNext()}
+            className="hidden rounded-full bg-elevated p-2 text-silver transition-colors hover:bg-chip hover:text-white sm:grid"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
       </div>
-      <div className="no-scrollbar flex gap-3 overflow-x-auto pb-2">
+      <Swiper
+        slidesPerView="auto"
+        spaceBetween={12}
+        speed={450}
+        grabCursor
+        className="pb-2"
+        onSwiper={setSwiper}
+      >
         {movies.map((m, i) => (
-          <div key={m.slug} className="w-[140px] shrink-0 sm:w-[160px]">
+          <SwiperSlide key={m.slug} className="!w-[140px] sm:!w-[160px]">
             <MovieCard movie={m} rank={ranked ? i + 1 : undefined} />
-          </div>
+          </SwiperSlide>
         ))}
-      </div>
+      </Swiper>
     </section>
   );
 }

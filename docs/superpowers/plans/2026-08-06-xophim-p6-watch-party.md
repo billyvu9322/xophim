@@ -1278,13 +1278,13 @@ pnpm --filter @xophim/api dev
 ```
 Create a room (requires Phase 2 auth or SKIP_AUTH_FOR_TESTS=1):
 ```
-curl -s -X POST http://localhost:6001/v1/rooms \
+curl -s -X POST http://localhost:5243/v1/rooms \
   -H "Content-Type: application/json" \
   -d '{"slug":"dong-ho-cat","episodeSlug":"tap-1"}'
 ```
 Copy the returned `code`, then open a WebSocket (e.g. via `wscat` or the browser console):
 ```
-wscat -c ws://localhost:6001/v1/rooms/<CODE>/ws
+wscat -c ws://localhost:5243/v1/rooms/<CODE>/ws
 > {"type":"join","name":"Test User"}
 < {"type":"sync","playing":false,"positionSec":0,"members":[...]}
 > {"type":"play","positionSec":10}

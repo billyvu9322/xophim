@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { useParams } from "@tanstack/react-router";
-import { useMovieList, useFilters } from "@/hooks/catalog";
-import { MovieGrid } from "@/components/MovieGrid";
-import { Pagination } from "@/components/Pagination";
+import { useState } from "react";
+import { InfiniteMovieGrid } from "@/components/InfiniteMovieGrid";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/states";
+import { useInfiniteMovieList, useFilters } from "@/hooks/catalog";
 import { cn } from "@/lib/utils";
 import type { ListParams } from "@/lib/catalog-api";
 
@@ -13,6 +12,7 @@ const TYPE_LABELS: Record<string, string> = {
   "phim-le": "Phim Lẻ",
   "hoat-hinh": "Hoạt Hình",
   "tv-shows": "TV Shows",
+  "phim-moi": "Phim Mới Cập Nhật",
 };
 
 type SortOption = {
@@ -33,7 +33,6 @@ const selectClass =
 export function BrowsePage() {
   const { type } = useParams({ from: "/list/$type" });
 
-  const [page, setPage] = useState(1);
   const [category, setCategory] = useState("");
   const [country, setCountry] = useState("");
   const [year, setYear] = useState<number | "">("");
@@ -44,7 +43,6 @@ export function BrowsePage() {
   const sortOpt = SORT_OPTIONS[sortIdx] ?? SORT_OPTIONS[0]!;
 
   const listParams: ListParams = {
-    page,
     sort_field: sortOpt.field,
     sort_type: sortOpt.type,
     ...(category ? { category } : {}),
@@ -52,7 +50,9 @@ export function BrowsePage() {
     ...(year !== "" ? { year } : {}),
   };
 
-  const { data, isLoading, isError } = useMovieList(type, listParams);
+  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useInfiniteMovieList(type, listParams);
+  const movies = data?.pages.flatMap((pageData) => pageData.items) ?? [];
 
   const title = TYPE_LABELS[type] ?? type;
 
@@ -61,27 +61,23 @@ export function BrowsePage() {
     setCountry("");
     setYear("");
     setSortIdx(0);
-    setPage(1);
   }
 
   function handleCategory(val: string) {
     setCategory(val);
-    setPage(1);
   }
   function handleCountry(val: string) {
     setCountry(val);
-    setPage(1);
   }
   function handleYear(val: string) {
     setYear(val === "" ? "" : Number(val));
-    setPage(1);
   }
   function handleSort(val: string) {
     setSortIdx(Number(val));
-    setPage(1);
   }
 
-  const hasActiveFilter = category !== "" || country !== "" || year !== "" || sortIdx !== 0;
+  const hasActiveFilter =
+    category !== "" || country !== "" || year !== "" || sortIdx !== 0;
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-6 space-y-6">
@@ -176,17 +172,15 @@ export function BrowsePage() {
         <LoadingState />
       ) : isError ? (
         <ErrorState />
-      ) : !data || data.items.length === 0 ? (
+      ) : movies.length === 0 ? (
         <EmptyState label="Không tìm thấy phim nào" />
       ) : (
-        <>
-          <MovieGrid movies={data.items} />
-          <Pagination
-            page={data.pagination.page}
-            totalPages={data.pagination.totalPages}
-            onChange={(p) => setPage(p)}
-          />
-        </>
+        <InfiniteMovieGrid
+          movies={movies}
+          hasMore={Boolean(hasNextPage)}
+          isLoadingMore={isFetchingNextPage}
+          loadMore={() => void fetchNextPage()}
+        />
       )}
     </div>
   );

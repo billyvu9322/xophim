@@ -74,9 +74,8 @@ export class CatalogService {
       kkLatestResponse,
       TTL.list,
     );
-    const cdn = env.KKPHIM_CDN_URL;
     return {
-      items: resp.items.map((it) => mapMovieItem(it, cdn)),
+      items: resp.items.map((it) => mapMovieItem(it, resp.pathImage)),
       pagination: {
         page: resp.pagination.currentPage,
         totalPages: resp.pagination.totalPages,

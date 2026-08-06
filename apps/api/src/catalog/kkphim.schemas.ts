@@ -12,14 +12,15 @@ const tmdb = z
 const imdb = z
   .object({ id: z.union([z.string(), z.null()]).optional(), vote_average: z.number().optional() })
   .passthrough();
+const imagePath = z.string().nullable().optional().transform((value) => value ?? "");
 
 export const kkMovieItem = z
   .object({
     slug: z.string(),
     name: z.string(),
     origin_name: z.string().optional().default(""),
-    poster_url: z.string().optional().default(""),
-    thumb_url: z.string().optional().default(""),
+    poster_url: imagePath,
+    thumb_url: imagePath,
     type: z.string().optional().default(""),
     year: z.number().nullable().optional().default(null),
     quality: z.string().optional().default(""),
@@ -40,10 +41,11 @@ const kkPagination = z
   })
   .passthrough();
 
-// Wrapper A: /danh-sach/phim-moi-cap-nhat* — absolute images, top-level pagination.
+// Wrapper A: /danh-sach/phim-moi-cap-nhat* — image base path + top-level pagination.
 export const kkLatestResponse = z
   .object({
     items: z.array(kkMovieItem),
+    pathImage: z.string().url().default("https://phimapi.com/uploads/movies/"),
     pagination: kkPagination,
   })
   .passthrough();

@@ -130,6 +130,35 @@ describe("GET /v1/auth/me", () => {
   });
 });
 
+describe("Google OAuth popup mode", () => {
+  it("stores popup mode in the OAuth state cookie", async () => {
+    Object.assign(app.env, {
+      GOOGLE_CLIENT_ID: "test-client-id",
+      GOOGLE_REDIRECT_URI: "http://localhost:5243/v1/auth/google/callback",
+    });
+
+    const res = await app.inject({ method: "GET", url: "/v1/auth/google?mode=popup" });
+    expect(res.statusCode).toBe(302);
+
+    const setCookie = res.headers["set-cookie"];
+    const cookies = Array.isArray(setCookie) ? setCookie : [String(setCookie ?? "")];
+    const stateCookie = cookies.find((c) => String(c).startsWith("oauth_state="));
+
+    expect(stateCookie).toContain(":popup");
+  });
+
+  it("builds a popup success page that notifies the opener and closes", async () => {
+    const { buildOAuthPopupSuccessHtml } = await import("../src/auth/routes.js");
+
+    const html = buildOAuthPopupSuccessHtml("http://localhost:5173");
+
+    expect(html).toContain("window.opener.postMessage");
+    expect(html).toContain("google-auth-success");
+    expect(html).toContain("http://localhost:5173");
+    expect(html).toContain("window.close()");
+  });
+});
+
 describe("requireAuth guard + logout", () => {
   it("returns 401 with no sid cookie", async () => {
     const res = await app.inject({ method: "POST", url: "/v1/auth/logout" });

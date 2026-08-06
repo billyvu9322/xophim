@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { AuthCard } from "@/components/AuthCard";
 import { Button } from "@/components/ui/Button";
-import { useAuth, useRegister, useMergeGuest } from "@/hooks/auth";
+import { useAuth, useGooglePopupLogin, useRegister, useMergeGuest } from "@/hooks/auth";
 import { useGuestStore } from "@/lib/guest-store";
 
 // Inline multicolor Google "G" SVG
@@ -35,6 +35,7 @@ export function RegisterPage() {
   const auth = useAuth();
   const registerMutation = useRegister();
   const mergeGuestMutation = useMergeGuest();
+  const googleLoginMutation = useGooglePopupLogin();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -90,6 +91,7 @@ export function RegisterPage() {
   }
 
   const isLoading = registerMutation.isPending;
+  const isGoogleLoading = googleLoginMutation.isPending;
 
   return (
     <AuthCard heading="Đăng Ký">
@@ -202,13 +204,24 @@ export function RegisterPage() {
       </div>
 
       {/* Google SSO */}
-      <a
-        href="/v1/auth/google"
+      <button
+        type="button"
+        onClick={() => {
+          setError(null);
+          googleLoginMutation.mutate(undefined, {
+            onSuccess: () => void navigate({ to: "/" }),
+            onError: (err) => {
+              const message = err instanceof Error ? err.message : "Đăng nhập Google thất bại";
+              setError(message);
+            },
+          });
+        }}
+        disabled={isGoogleLoading}
         className="flex h-11 w-full items-center justify-center gap-2 rounded-pill bg-white text-[#242428] font-medium hover:bg-gray-100 transition-colors"
       >
         <GoogleIcon />
-        Tiếp tục với Google
-      </a>
+        {isGoogleLoading ? "Đang mở Google..." : "Tiếp tục với Google"}
+      </button>
 
       {/* Footer switch */}
       <p className="text-sm text-muted text-center">

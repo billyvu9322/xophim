@@ -24,17 +24,15 @@ pnpm monorepo: `apps/api` (Fastify + Drizzle + PostgreSQL) and `apps/web`
 ```bash
 pnpm install
 
-# API env
-cp apps/api/.env.example apps/api/.env
+# Shared API + web env
+cp .env.example .env
 # → set DATABASE_URL
-
-# Web env is optional in dev (Vite proxies /v1 → API)
 ```
 
 ## Commands (from repo root)
 
 ```bash
-pnpm dev            # api (:6001) + web (:5173) in parallel
+pnpm dev            # api (:5243) + web (:5173) in parallel
 pnpm build          # build all
 pnpm typecheck      # tsc across workspaces
 
@@ -59,7 +57,7 @@ fallback in `app.ts`). No nginx, no separate web container. The API runs via `ts
 (no compiled API dist).
 
 ```bash
-docker compose up --build     # single `app` service on API_PORT (default 6001)
+docker compose up --build     # single `app` service on API_PORT (default 5243)
 ```
 
 `docker-compose.yml` runs only the `app` service. **PostgreSQL is external** — set
@@ -101,3 +99,10 @@ apps/
       lib/api.ts         # axios instance
       lib/utils.ts       # cn()
 ```
+
+```bash
+rm -rf xophim
+unzip xophim.zip -d xophim && cd xophim
+docker compose --env-file .env.production up -d --build
+docker compose --env-file .env.production run --rm app pnpm --filter @xophim/api db:migrate
+docker compose logs -f app

@@ -5,6 +5,7 @@ import {
   mapMovieItem,
   mapV1List,
 } from "../src/catalog/mapper.js";
+import { kkV1ListResponse } from "../src/catalog/kkphim.schemas.js";
 
 const CDN = "https://phimimg.com";
 
@@ -70,6 +71,19 @@ describe("mapV1List", () => {
     });
     expect(paged.items[0]?.posterUrl).toBe(`${CDN}/uploads/a.webp`);
     expect(paged.pagination).toEqual({ page: 2, totalPages: 5, totalItems: 100 });
+  });
+
+  it("accepts null image fields from KKPhim and maps them to empty URLs", () => {
+    const parsed = kkV1ListResponse.parse({
+      data: {
+        items: [{ slug: "a", name: "A", poster_url: null, thumb_url: null }],
+        params: { pagination: { totalItems: 1, currentPage: 1, totalPages: 1 } },
+        APP_DOMAIN_CDN_IMAGE: CDN,
+      },
+    });
+    const paged = mapV1List(parsed);
+    expect(paged.items[0]?.posterUrl).toBe("");
+    expect(paged.items[0]?.thumbUrl).toBe("");
   });
 });
 

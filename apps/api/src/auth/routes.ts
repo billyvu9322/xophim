@@ -16,6 +16,27 @@ import "./types.js"; // ensure module augmentation is loaded
 const SID = "sid";
 const OAUTH_STATE_COOKIE = "oauth_state";
 const OAUTH_STATE_TTL_SEC = 60 * 10; // 10 minutes
+const OAUTH_POPUP_MODE = "popup";
+
+export function buildOAuthPopupSuccessHtml(origin: string): string {
+  const targetOrigin = JSON.stringify(origin);
+  return `<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>Đăng nhập Google</title>
+  </head>
+  <body>
+    <script>
+      if (window.opener) {
+        window.opener.postMessage({ type: "google-auth-success" }, ${targetOrigin});
+      }
+      window.close();
+    </script>
+    <p>Đăng nhập thành công. Bạn có thể đóng cửa sổ này.</p>
+  </body>
+</html>`;
+}
 
 function sidCookieOptions(ttlDays: number) {
   return {
@@ -124,7 +145,7 @@ export const registerAuthRoutes: FastifyPluginAsyncZod = async (app) => {
   // ------------------------------------------------------------------ //
   //  GET /google  — redirect to Google OAuth                             //
   // ------------------------------------------------------------------ //
-  app.get("/google", async (_request, reply) => {
+  app.get("/google", async (request, reply) => {
     const clientId = app.env.GOOGLE_CLIENT_ID;
     const redirectUri = app.env.GOOGLE_REDIRECT_URI;
     if (!clientId || !redirectUri) {
@@ -136,7 +157,10 @@ export const registerAuthRoutes: FastifyPluginAsyncZod = async (app) => {
 
     // Store state + verifier in a short-lived httpOnly cookie; the callback
     // reads them back to verify. Value: `state:verifier` (neither has a colon).
-    reply.setCookie(OAUTH_STATE_COOKIE, `${state}:${verifier}`, {
+    const query = request.query as { mode?: string };
+    const mode = query.mode === OAUTH_POPUP_MODE ? OAUTH_POPUP_MODE : "redirect";
+
+    reply.setCookie(OAUTH_STATE_COOKIE, `${state}:${verifier}:${mode}`, {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
@@ -164,7 +188,7 @@ export const registerAuthRoutes: FastifyPluginAsyncZod = async (app) => {
 
       // Verify state + extract verifier.
       const stateCookie = request.cookies[OAUTH_STATE_COOKIE] ?? "";
-      const [storedState, verifier] = stateCookie.split(":");
+      const [storedState, verifier, mode] = stateCookie.split(":");
       if (!storedState || !verifier || storedState !== request.query.state) {
         return reply.code(400).send({ error: "Invalid OAuth state" });
       }
@@ -195,6 +219,12 @@ export const registerAuthRoutes: FastifyPluginAsyncZod = async (app) => {
         ip: request.ip,
       });
       reply.setCookie(SID, sid, sidCookieOptions(app.env.SESSION_TTL_DAYS));
+
+      if (mode === OAUTH_POPUP_MODE) {
+        return reply
+          .type("text/html; charset=utf-8")
+          .send(buildOAuthPopupSuccessHtml(app.env.WEB_ORIGIN));
+      }
 
       return reply.redirect(app.env.WEB_ORIGIN);
     },

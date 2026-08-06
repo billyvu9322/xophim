@@ -1,5 +1,5 @@
-import Hls from "hls.js";
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import ReactPlayer from "react-player/lazy";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 export interface VideoPlayerHandle {
   play: () => void;
@@ -22,68 +22,102 @@ interface VideoPlayerProps {
   className?: string;
 }
 
-// HLS player. Uses hls.js where MSE is available, falls back to native HLS
-// (Safari / iOS) via the plain <video src>. Cleans up the Hls instance on
-// src change / unmount to avoid leaks.
+// Movie player wrapper over react-player. Keeps the old imperative API for
+// watch-party sync while enabling native HLS controls, PiP, fullscreen, and
+// keyboard shortcuts through one player surface.
 export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function VideoPlayer(
   { src, poster, autoPlay = true, startAt = 0, onTimeUpdate, onEnded, onPlay, onPause, onSeeked, className },
   ref,
 ) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useImperativeHandle(ref, () => ({
-    play: () => void videoRef.current?.play(),
-    pause: () => videoRef.current?.pause(),
-    seek: (sec: number) => {
-      if (videoRef.current) videoRef.current.currentTime = sec;
-    },
-    currentTime: () => videoRef.current?.currentTime ?? 0,
-  }));
+  const playerRef = useRef<ReactPlayer>(null);
+  const durationRef = useRef(0);
+  const didApplyStartRef = useRef(false);
+  const [playing, setPlaying] = useState(autoPlay);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !src) return;
+    didApplyStartRef.current = false;
+    setPlaying(autoPlay);
+  }, [autoPlay, src]);
 
-    let hls: Hls | null = null;
+  useImperativeHandle(ref, () => ({
+    play: () => setPlaying(true),
+    pause: () => setPlaying(false),
+    seek: (sec: number) => {
+      playerRef.current?.seekTo(sec, "seconds");
+    },
+    currentTime: () => playerRef.current?.getCurrentTime() ?? 0,
+  }));
 
-    const onLoaded = () => {
-      if (startAt > 0) video.currentTime = startAt;
-      if (autoPlay) void video.play().catch(() => {});
-    };
-
-    if (Hls.isSupported() && !src.includes(".mp4")) {
-      hls = new Hls({ enableWorker: true });
-      hls.loadSource(src);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, onLoaded);
-    } else {
-      video.src = src;
-      video.addEventListener("loadedmetadata", onLoaded, { once: true });
-    }
-
-    return () => {
-      if (hls) hls.destroy();
-      video.removeAttribute("src");
-    };
-    // startAt/autoPlay intentionally excluded — only re-init on src change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src]);
+  const seekRelative = (deltaSec: number) => {
+    const current = playerRef.current?.getCurrentTime() ?? 0;
+    const duration = durationRef.current || Number.POSITIVE_INFINITY;
+    const next = Math.max(0, Math.min(duration, current + deltaSec));
+    playerRef.current?.seekTo(next, "seconds");
+    onSeeked?.(next);
+  };
 
   return (
-    <video
-      ref={videoRef}
-      poster={poster}
-      controls
-      playsInline
+    <div
       className={className ?? "h-full w-full bg-black"}
-      onTimeUpdate={(e) => {
-        const v = e.currentTarget;
-        if (onTimeUpdate && v.duration) onTimeUpdate(v.currentTime, v.duration);
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          seekRelative(-10);
+        }
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          seekRelative(10);
+        }
+        if (event.key === " " || event.key === "k") {
+          event.preventDefault();
+          setPlaying((value) => !value);
+        }
       }}
-      onEnded={onEnded}
-      onPlay={onPlay}
-      onPause={onPause}
-      onSeeked={(e) => onSeeked?.(e.currentTarget.currentTime)}
-    />
+    >
+      <ReactPlayer
+        ref={playerRef}
+        url={src}
+        width="100%"
+        height="100%"
+        controls
+        pip
+        playsinline
+        playing={playing}
+        config={{
+          file: {
+            forceHLS: src.includes(".m3u8"),
+            attributes: {
+              poster,
+              preload: "metadata",
+              controlsList: "nodownload",
+            },
+          },
+        }}
+        onReady={() => {
+          if (!didApplyStartRef.current && startAt > 0) {
+            playerRef.current?.seekTo(startAt, "seconds");
+            didApplyStartRef.current = true;
+          }
+        }}
+        onDuration={(duration) => {
+          durationRef.current = duration;
+        }}
+        onProgress={({ playedSeconds }) => {
+          const duration = durationRef.current;
+          if (onTimeUpdate && duration > 0) onTimeUpdate(playedSeconds, duration);
+        }}
+        onPlay={() => {
+          setPlaying(true);
+          onPlay?.();
+        }}
+        onPause={() => {
+          setPlaying(false);
+          onPause?.();
+        }}
+        onSeek={(seconds) => onSeeked?.(seconds)}
+        onEnded={onEnded}
+      />
+    </div>
   );
 });

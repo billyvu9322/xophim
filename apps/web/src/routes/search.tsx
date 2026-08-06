@@ -1,20 +1,14 @@
-import { useState } from "react";
 import { useSearch as useRouterSearch } from "@tanstack/react-router";
-import { useSearch as useCatalogSearch } from "@/hooks/catalog";
-import { MovieGrid } from "@/components/MovieGrid";
-import { Pagination } from "@/components/Pagination";
+import { InfiniteMovieGrid } from "@/components/InfiniteMovieGrid";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/states";
+import { useInfiniteSearch } from "@/hooks/catalog";
 
 export function SearchPage() {
   const { keyword = "" } = useRouterSearch({ from: "/search" }) as { keyword?: string };
 
-  const [page, setPage] = useState(1);
-
-  const { data, isLoading, isError } = useCatalogSearch(keyword, { page });
-
-  // Reset page when keyword changes — derived effect via key prop pattern:
-  // parent router controls keyword, page resets automatically because
-  // the component remounts when navigating to a new keyword query.
+  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useInfiniteSearch(keyword, {});
+  const movies = data?.pages.flatMap((pageData) => pageData.items) ?? [];
 
   if (!keyword) {
     return (
@@ -37,17 +31,15 @@ export function SearchPage() {
         <LoadingState />
       ) : isError ? (
         <ErrorState />
-      ) : !data || data.items.length === 0 ? (
+      ) : movies.length === 0 ? (
         <EmptyState label="Không tìm thấy phim nào" />
       ) : (
-        <>
-          <MovieGrid movies={data.items} />
-          <Pagination
-            page={data.pagination.page}
-            totalPages={data.pagination.totalPages}
-            onChange={(p) => setPage(p)}
-          />
-        </>
+        <InfiniteMovieGrid
+          movies={movies}
+          hasMore={Boolean(hasNextPage)}
+          isLoadingMore={isFetchingNextPage}
+          loadMore={() => void fetchNextPage()}
+        />
       )}
     </div>
   );

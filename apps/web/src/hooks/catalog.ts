@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { catalogApi, type ListParams } from "../lib/catalog-api";
 
 export const catalogKeys = {
@@ -32,11 +32,36 @@ export const useMovieList = (type: string, params: ListParams) =>
     staleTime: FIVE_MIN,
   });
 
+export const useInfiniteMovieList = (type: string, params: Omit<ListParams, "page">) =>
+  useInfiniteQuery({
+    queryKey: catalogKeys.list(type, params),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => catalogApi.list(type, { ...params, page: pageParam }),
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.page < lastPage.pagination.totalPages
+        ? lastPage.pagination.page + 1
+        : undefined,
+    staleTime: FIVE_MIN,
+  });
+
 export const useSearch = (keyword: string, params: ListParams) =>
   useQuery({
     queryKey: catalogKeys.search(keyword, params),
     queryFn: () => catalogApi.search(keyword, params),
     enabled: keyword.trim().length > 0,
+    staleTime: FIVE_MIN,
+  });
+
+export const useInfiniteSearch = (keyword: string, params: Omit<ListParams, "page">) =>
+  useInfiniteQuery({
+    queryKey: catalogKeys.search(keyword, params),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => catalogApi.search(keyword, { ...params, page: pageParam }),
+    enabled: keyword.trim().length > 0,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.page < lastPage.pagination.totalPages
+        ? lastPage.pagination.page + 1
+        : undefined,
     staleTime: FIVE_MIN,
   });
 

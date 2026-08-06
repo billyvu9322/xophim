@@ -3,6 +3,8 @@ import { ChevronDown, LogOut, Menu, Search, User as UserIcon, X } from "lucide-r
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "./ui/Logo";
 import { useAuth, useLogout } from "@/hooks/auth";
+import { useSearch as useCatalogSearch } from "@/hooks/catalog";
+import type { Movie } from "@/lib/catalog-types";
 
 // Explicit Links (not a mapped array) so TanStack Router's typed `to`/`params`
 // stay statically checked. `linkClass` styles the active state via [&.active].
@@ -47,8 +49,6 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 export function Navbar() {
   const { data: user } = useAuth();
   const logout = useLogout();
-  const navigate = useNavigate();
-  const [keyword, setKeyword] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
   const acctRef = useRef<HTMLDivElement>(null);
@@ -60,29 +60,6 @@ export function Navbar() {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
-
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const kw = keyword.trim();
-    if (kw) {
-      setMenuOpen(false);
-      void navigate({ to: "/search", search: { keyword: kw } });
-    }
-  };
-
-  const searchBox = (
-    <form onSubmit={submitSearch} className="w-full">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-        <input
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          placeholder="Tìm kiếm phim..."
-          className="h-9 w-full rounded-md bg-elevated pl-9 pr-3 text-sm text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
-        />
-      </div>
-    </form>
-  );
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate/40 bg-chrome/95 backdrop-blur">
@@ -97,7 +74,9 @@ export function Navbar() {
           <NavLinks />
         </nav>
 
-        <div className="ml-auto hidden max-w-xs flex-1 md:block">{searchBox}</div>
+        <div className="ml-auto hidden max-w-xs flex-1 md:block">
+          <SearchBox />
+        </div>
 
         <div className="ml-auto md:ml-0" ref={acctRef}>
           {user ? (
@@ -155,12 +134,143 @@ export function Navbar() {
 
       {menuOpen && (
         <div className="border-t border-slate/40 bg-chrome px-4 py-3 lg:hidden">
-          <div className="mb-3 md:hidden">{searchBox}</div>
+          <div className="mb-3 md:hidden">
+            <SearchBox onNavigate={() => setMenuOpen(false)} />
+          </div>
           <nav className="flex flex-col">
             <NavLinks onNavigate={() => setMenuOpen(false)} />
           </nav>
         </div>
       )}
     </header>
+  );
+}
+
+function SearchBox({ onNavigate }: { onNavigate?: () => void }) {
+  const navigate = useNavigate();
+  const rootRef = useRef<HTMLFormElement>(null);
+  const [keyword, setKeyword] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
+  const [open, setOpen] = useState(false);
+  const trimmedKeyword = keyword.trim();
+  const queryKeyword = debouncedKeyword.length >= 2 ? debouncedKeyword : "";
+  const { data, isFetching, isError } = useCatalogSearch(queryKeyword, { page: 1, limit: 5 });
+  const results = data?.items ?? [];
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedKeyword(trimmedKeyword), 250);
+    return () => window.clearTimeout(id);
+  }, [trimmedKeyword]);
+
+  useEffect(() => {
+    const onClick = (event: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  const goToSearch = () => {
+    if (!trimmedKeyword) return;
+    setOpen(false);
+    onNavigate?.();
+    void navigate({ to: "/search", search: { keyword: trimmedKeyword } });
+  };
+
+  const goToMovie = (movie: Movie) => {
+    setOpen(false);
+    setKeyword(movie.name);
+    onNavigate?.();
+    void navigate({ to: "/xem/$slug", params: { slug: movie.slug } });
+  };
+
+  const showDropdown = open && trimmedKeyword.length >= 2;
+
+  return (
+    <form
+      ref={rootRef}
+      onSubmit={(event) => {
+        event.preventDefault();
+        goToSearch();
+      }}
+      className="relative w-full"
+    >
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+        <input
+          value={keyword}
+          onChange={(event) => {
+            setKeyword(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder="Tìm kiếm phim..."
+          autoComplete="off"
+          className="h-9 w-full rounded-md bg-elevated pl-9 pr-3 text-sm text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
+        />
+      </div>
+
+      {showDropdown && (
+        <div className="absolute -left-[15px] -right-[15px] top-[50px] z-50 bg-[#2d2b44] text-white shadow-[0_20px_20px_rgba(0,0,0,0.3)]">
+          {isFetching && (
+            <div className="flex h-20 items-center justify-center gap-1.5 bg-[#2d2b44]">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-gold [animation-delay:-0.2s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-gold [animation-delay:-0.1s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-gold" />
+            </div>
+          )}
+
+          {!isFetching && isError && (
+            <div className="px-[15px] py-5 text-center text-sm text-[#aaa]">Không thể tải kết quả.</div>
+          )}
+
+          {!isFetching && !isError && results.length === 0 && (
+            <div className="px-[15px] py-5 text-center text-sm text-[#aaa]">Không tìm thấy phim.</div>
+          )}
+
+          {!isFetching && !isError && results.length > 0 && (
+            <div>
+              {results.map((movie) => (
+                <button
+                  key={movie.slug}
+                  type="button"
+                  onClick={() => goToMovie(movie)}
+                  className="group relative flex w-full gap-[15px] p-[15px] text-left transition-colors hover:bg-white/5"
+                >
+                  <span className="relative h-[55px] w-10 shrink-0 overflow-hidden bg-white/10">
+                    <img
+                      src={movie.posterUrl || movie.thumbUrl}
+                      alt={movie.name}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </span>
+                  <span className="min-w-0 flex-1 text-xs leading-6">
+                    <span className="mb-1 block truncate text-sm font-medium leading-[16.8px] text-white group-hover:text-gold">
+                      {movie.name}
+                    </span>
+                    {movie.originName && (
+                      <span className="mb-1 block truncate text-[13px] leading-[15.6px] text-[#aaa]">
+                        {movie.originName}
+                      </span>
+                    )}
+                    <span className="block truncate text-xs leading-[15.6px] text-[#aaa]">
+                      {[movie.year, movie.quality, movie.episodeCurrent].filter(Boolean).join(" · ")}
+                    </span>
+                  </span>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={goToSearch}
+                className="mx-[15px] mb-[15px] block w-[calc(100%-30px)] bg-gold p-[15px] text-center text-base font-medium leading-6 text-[#111] hover:brightness-105"
+              >
+                Xem tất cả kết quả
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </form>
   );
 }

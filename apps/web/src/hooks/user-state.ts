@@ -161,6 +161,49 @@ export function useHistory() {
 }
 
 // ---------------------------------------------------------------------------
+// useDeleteHistory — logged in → DELETE + optimistic; guest → remove local rows.
+// ---------------------------------------------------------------------------
+export function useDeleteHistory() {
+  const { data: user } = useAuth();
+  const qc = useQueryClient();
+  const removeGuestProgress = useGuestStore((s) => s.removeProgress);
+
+  const serverMutation = useMutation({
+    mutationFn: (slug: string) => userStateApi.deleteHistory(slug),
+    onMutate: async (slug) => {
+      await qc.cancelQueries({ queryKey: userStateKeys.history });
+      const previous = qc.getQueryData<{ items: ProgressItem[] }>(userStateKeys.history);
+
+      qc.setQueryData<{ items: ProgressItem[] }>(userStateKeys.history, (old) => ({
+        items: (old?.items ?? []).filter((item) => item.movie_slug !== slug),
+      }));
+
+      return { previous };
+    },
+    onError: (_err, _slug, context) => {
+      if (context?.previous !== undefined) {
+        qc.setQueryData(userStateKeys.history, context.previous);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: userStateKeys.history });
+    },
+  });
+
+  return {
+    remove: (slug: string) => {
+      if (user) {
+        serverMutation.mutate(slug);
+      } else {
+        removeGuestProgress(slug);
+      }
+    },
+    isPending: serverMutation.isPending,
+    error: serverMutation.error,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // useSaveProgress — logged in → PUT; guest → store upsert.
 // The player throttles calls via shouldThrottleProgressSave at the call site.
 // ---------------------------------------------------------------------------

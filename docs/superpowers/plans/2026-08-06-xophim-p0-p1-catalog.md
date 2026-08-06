@@ -17,7 +17,7 @@
 ## File Structure
 
 **API (`apps/api/src/`)**
-- `config/env.ts` — *modify*: add `KKPHIM_BASE_URL`, `KKPHIM_CDN_URL`.
+- `config/env.ts` — *modify*: add `KKPHIM_BASE_URL`.
 - `catalog/types.ts` — *create*: XoPhim domain types (`XoMovie`, `XoMovieDetail`, …).
 - `catalog/kkphim.schemas.ts` — *create*: Zod schemas validating KKPhim responses (fields the mapper reads; `.passthrough()` for the rest).
 - `catalog/mapper.ts` — *create*: KKPhim → XoPhim normalization (absolute images, unify wrappers).
@@ -111,7 +111,6 @@ In `apps/api/src/config/env.ts`, inside `envSchema = z.object({ … })`, add aft
   // KKPhim content API (proxied by the CATALOG layer).
   KKPHIM_BASE_URL: z.string().url().default("https://phimapi.com"),
   // CDN host used to absolutize relative poster/thumb paths from /v1/api/* responses.
-  KKPHIM_CDN_URL: z.string().url().default("https://phimimg.com"),
 ```
 
 - [ ] **Step 2: Checkpoint**
@@ -961,7 +960,6 @@ export class CatalogService {
       kkLatestResponse,
       TTL.list,
     );
-    const cdn = env.KKPHIM_CDN_URL;
     return {
       items: resp.items.map((it) => mapMovieItem(it, cdn)),
       pagination: {
@@ -1603,7 +1601,7 @@ Expected: no errors. (If `useParams`/`useSearch` generics complain, confirm `@ta
 
 Run: `pnpm --filter @xophim/api dev` (needs a reachable `DATABASE_URL` for boot; catalog itself needs none). In another shell:
 ```bash
-curl -s localhost:6001/v1/catalog/detail/dong-ho-cat | head -c 300
+curl -s localhost:5243/v1/catalog/detail/dong-ho-cat | head -c 300
 ```
 Expected: JSON with `"movie"` and an absolute `posterUrl`. If KKPhim is unreachable from the host, this returns 502 — expected offline; the integration tests (Task 9) are the authoritative check.
 

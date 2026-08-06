@@ -1971,7 +1971,7 @@ Ensure `DATABASE_URL` is set in `apps/api/.env` pointing at a real Postgres inst
 - [ ] **Step 2: Register a user**
 
 ```bash
-curl -c /tmp/xophim-cookies.txt -s -X POST http://localhost:6001/v1/auth/register \
+curl -c /tmp/xophim-cookies.txt -s -X POST http://localhost:5243/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username":"testuser","email":"test@test.com","password":"TestPass123!"}' | jq .
 ```
@@ -1980,7 +1980,7 @@ Expected: `{"user":{"id":"...","username":"testuser","email":"test@test.com","ro
 - [ ] **Step 3: Call /me with the cookie**
 
 ```bash
-curl -b /tmp/xophim-cookies.txt -s http://localhost:6001/v1/auth/me | jq .
+curl -b /tmp/xophim-cookies.txt -s http://localhost:5243/v1/auth/me | jq .
 ```
 Expected: `{"user":{"id":"...","email":"test@test.com",...}}`.
 
@@ -1988,14 +1988,14 @@ Expected: `{"user":{"id":"...","email":"test@test.com",...}}`.
 
 ```bash
 curl -b /tmp/xophim-cookies.txt -c /tmp/xophim-cookies.txt \
-  -s -X POST http://localhost:6001/v1/auth/logout | jq .
+  -s -X POST http://localhost:5243/v1/auth/logout | jq .
 ```
 Expected: `{"ok":true}`.
 
 - [ ] **Step 5: /me after logout returns null**
 
 ```bash
-curl -b /tmp/xophim-cookies.txt -s http://localhost:6001/v1/auth/me | jq .
+curl -b /tmp/xophim-cookies.txt -s http://localhost:5243/v1/auth/me | jq .
 ```
 Expected: `{"user":null}`.
 

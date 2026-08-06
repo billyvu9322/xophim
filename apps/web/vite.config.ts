@@ -17,7 +17,7 @@ export default defineConfig({
       // Dev: forward API calls to the Fastify server so the SPA can use a
       // relative /v1 base and avoid CORS entirely.
       "/v1": {
-        target: "http://localhost:6001",
+        target: "http://localhost:5243",
         changeOrigin: true,
       },
     },

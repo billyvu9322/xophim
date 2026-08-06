@@ -11,7 +11,7 @@ services:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/v1}
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      API_PORT: ${API_PORT:-6001}
+      API_PORT: ${API_PORT:-5243}
       # Existing PostgreSQL on the VM host (not a container).
       # From inside the container, host.docker.internal resolves to the host (extra_hosts below),
       # e.g. DATABASE_URL=postgresql://user:pass@host.docker.internal:5432/xophim
@@ -25,5 +25,5 @@ services:
       # Linux: lets host.docker.internal resolve to the VM host IP (for the host PostgreSQL).
       - "host.docker.internal:host-gateway"
     ports:
-      - "${API_PORT:-6001}:${API_PORT:-6001}"
+      - "${API_PORT:-5243}:${API_PORT:-5243}"
     restart: unless-stopped

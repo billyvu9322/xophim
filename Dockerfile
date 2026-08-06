@@ -24,5 +24,5 @@ FROM build AS runtime
 ENV NODE_ENV=production
 # The API serves the built SPA from here (see app.ts).
 ENV WEB_STATIC_DIR=/app/apps/web/dist
-EXPOSE 6001
+EXPOSE 5243
 CMD ["pnpm", "--filter", "@xophim/api", "start"]

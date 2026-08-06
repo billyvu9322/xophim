@@ -1,12 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, Info, Play, Star } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ChevronRight, Info, Play, Star, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Autoplay } from "swiper/modules";
+import { Swiper, SwiperSlide } from "swiper/react";
+import type { Swiper as SwiperInstance } from "swiper";
+import "swiper/css";
 import { MovieCard } from "@/components/MovieCard";
 import { MovieRail } from "@/components/MovieRail";
 import { Button } from "@/components/ui/Button";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useHome } from "@/hooks/catalog";
-import { useHistory } from "@/hooks/user-state";
+import { useDeleteHistory, useHistory } from "@/hooks/user-state";
 import type { Movie } from "@/lib/catalog-types";
 import { langBadges } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -14,6 +18,7 @@ import { cn } from "@/lib/utils";
 export function HomePage() {
   const { data, isLoading, error } = useHome();
   const { items: history } = useHistory();
+  const deleteHistory = useDeleteHistory();
 
   if (isLoading) return <LoadingState />;
   if (error || !data) return <ErrorState />;
@@ -40,10 +45,26 @@ export function HomePage() {
             {continueWatching.length > 0 && (
               <section className="space-y-3">
                 <h2 className="text-xl font-semibold text-white">Xem Tiếp</h2>
-                <div className="no-scrollbar flex gap-3 overflow-x-auto pb-2">
+                <div className="no-scrollbar -mx-4 -mt-4 flex gap-3 overflow-x-auto px-4 pb-2 pt-4">
                   {continueWatching.map((m) => (
-                    <div key={m.slug} className="w-[140px] shrink-0 sm:w-[160px]">
+                    <div
+                      key={m.slug}
+                      className="group relative w-[140px] shrink-0 sm:w-[160px]"
+                    >
                       <MovieCard movie={m} progress={m.progress} />
+                      <button
+                        type="button"
+                        aria-label={`Xóa ${m.name} khỏi Xem Tiếp`}
+                        title="Xóa khỏi Xem Tiếp"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          deleteHistory.remove(m.slug);
+                        }}
+                        className="absolute right-[-15px] top-[-15px] z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/75 text-white opacity-0 shadow-lg shadow-black/40 ring-1 ring-white/15 backdrop-blur transition hover:bg-danger hover:text-white group-hover:opacity-100 focus:opacity-100"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -124,78 +145,99 @@ export function HomePage() {
 // ---------------------------------------------------------------------------
 function Spotlight({ movies }: { movies: Movie[] }) {
   const [idx, setIdx] = useState(0);
-
-  useEffect(() => {
-    if (movies.length <= 1) return;
-    const id = setInterval(() => setIdx((i) => (i + 1) % movies.length), 6000);
-    return () => clearInterval(id);
-  }, [movies.length]);
+  const [swiper, setSwiper] = useState<SwiperInstance | null>(null);
 
   if (movies.length === 0) return null;
-  const m = movies[idx];
-  if (!m) return null;
-  const badges = langBadges(m.lang);
 
   return (
     <section className="relative h-[420px] w-full overflow-hidden sm:h-[520px]">
-      <img
-        src={m.thumbUrl || m.posterUrl}
-        alt={m.name}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-      <div className="absolute inset-0 bg-black/40" />
-      <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/85 to-canvas/20" />
-      <div className="absolute inset-0 bg-gradient-to-t from-canvas via-canvas/50 to-transparent" />
+      <Swiper
+        modules={[Autoplay]}
+        autoplay={
+          movies.length > 1
+            ? { delay: 6000, disableOnInteraction: false }
+            : false
+        }
+        loop={movies.length > 1}
+        speed={700}
+        slidesPerView={1}
+        className="h-full"
+        onSwiper={setSwiper}
+        onSlideChange={(instance) => setIdx(instance.realIndex)}
+      >
+        {movies.map((m, i) => {
+          const badges = langBadges(m.lang);
+          return (
+            <SwiperSlide key={m.slug}>
+              <img
+                src={m.thumbUrl || m.posterUrl}
+                alt={m.name}
+                className="absolute inset-0 h-full w-full object-cover brightness-110 saturate-110"
+              />
+              <div className="absolute inset-0 bg-black/15" />
+              <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/65 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-canvas/90 via-canvas/25 to-transparent" />
 
-      <div className="relative mx-auto flex h-full max-w-[1600px] items-end px-4 pb-12">
-        <div className="max-w-xl space-y-4">
-          <p className="text-sm font-semibold uppercase tracking-wide text-gold">
-            #{idx + 1} Nổi Bật
-          </p>
-          <h1 className="text-3xl font-bold text-white sm:text-5xl">{m.name}</h1>
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {m.year != null && <Chip>{m.year}</Chip>}
-            {m.quality && <Chip>{m.quality}</Chip>}
-            {m.episodeCurrent && <Chip>{m.episodeCurrent}</Chip>}
-            {m.score.imdb != null && (
-              <span className="flex items-center gap-1 rounded bg-black/50 px-2 py-1 text-white">
-                <Star className="h-3 w-3 fill-gold text-gold" /> IMDb {m.score.imdb.toFixed(1)}
-              </span>
-            )}
-            {badges.map((b) => (
-              <span
-                key={b.label}
-                className={cn(
-                  "rounded-sm px-1.5 py-1 font-semibold text-[#111]",
-                  b.kind === "sub" ? "bg-sub" : "bg-dub",
-                )}
-              >
-                {b.label}
-              </span>
-            ))}
-          </div>
-          {m.originName && <p className="line-clamp-2 text-sm text-silver">{m.originName}</p>}
-          <div className="flex gap-3 pt-2">
-            <Link to="/xem/$slug" params={{ slug: m.slug }}>
-              <Button variant="primary" size="lg">
-                <Play className="h-5 w-5 fill-[#111]" /> Xem Ngay
-              </Button>
-            </Link>
-            <Link to="/xem/$slug" params={{ slug: m.slug }}>
-              <Button variant="secondary" size="lg">
-                <Info className="h-5 w-5" /> Thông Tin
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
+              <div className="relative mx-auto flex h-full max-w-[1600px] items-end px-4 pb-12">
+                <div className="max-w-xl space-y-4">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-gold">
+                    #{i + 1} Nổi Bật
+                  </p>
+                  <h1 className="text-3xl font-bold text-white sm:text-5xl">
+                    {m.name}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    {m.year != null && <Chip>{m.year}</Chip>}
+                    {m.quality && <Chip>{m.quality}</Chip>}
+                    {m.episodeCurrent && <Chip>{m.episodeCurrent}</Chip>}
+                    {m.score.imdb != null && (
+                      <span className="flex items-center gap-1 rounded bg-black/50 px-2 py-1 text-white">
+                        <Star className="h-3 w-3 fill-gold text-gold" /> IMDb{" "}
+                        {m.score.imdb.toFixed(1)}
+                      </span>
+                    )}
+                    {badges.map((b) => (
+                      <span
+                        key={b.label}
+                        className={cn(
+                          "rounded-sm px-1.5 py-1 font-semibold text-[#111]",
+                          b.kind === "sub" ? "bg-sub" : "bg-dub",
+                        )}
+                      >
+                        {b.label}
+                      </span>
+                    ))}
+                  </div>
+                  {m.originName && (
+                    <p className="line-clamp-2 text-sm text-silver">
+                      {m.originName}
+                    </p>
+                  )}
+                  <div className="flex gap-3 pt-2">
+                    <Link to="/xem/$slug" params={{ slug: m.slug }}>
+                      <Button variant="primary" size="lg">
+                        <Play className="h-5 w-5 fill-[#111]" /> Xem Ngay
+                      </Button>
+                    </Link>
+                    <Link to="/xem/$slug" params={{ slug: m.slug }}>
+                      <Button variant="secondary" size="lg">
+                        <Info className="h-5 w-5" /> Thông Tin
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </SwiperSlide>
+          );
+        })}
+      </Swiper>
 
       {/* dot indicators */}
-      <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+      <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
         {movies.map((mv, i) => (
           <button
             key={mv.slug}
-            onClick={() => setIdx(i)}
+            onClick={() => swiper?.slideToLoop(i)}
             aria-label={`Slide ${i + 1}`}
             className={cn(
               "h-1.5 rounded-full transition-all",
@@ -209,7 +251,9 @@ function Spotlight({ movies }: { movies: Movie[] }) {
 }
 
 function Chip({ children }: { children: React.ReactNode }) {
-  return <span className="rounded bg-white/10 px-2 py-1 text-white">{children}</span>;
+  return (
+    <span className="rounded bg-white/10 px-2 py-1 text-white">{children}</span>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -232,7 +276,9 @@ function Top10({ tabs }: { tabs: Record<string, Movie[]> }) {
                 onClick={() => setActive(l)}
                 className={cn(
                   "rounded-pill px-2.5 py-1 text-xs transition-colors",
-                  l === active ? "bg-gold text-[#111]" : "bg-elevated text-silver hover:text-white",
+                  l === active
+                    ? "bg-gold text-[#111]"
+                    : "bg-elevated text-silver hover:text-white",
                 )}
               >
                 {l}

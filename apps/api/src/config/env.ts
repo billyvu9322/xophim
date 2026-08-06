@@ -41,7 +41,7 @@ for (const dir of [apiDir, rootDir]) {
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  API_PORT: z.coerce.number().int().positive().default(6001),
+  API_PORT: z.coerce.number().int().positive().default(5243),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .optional(),
@@ -50,8 +50,6 @@ const envSchema = z.object({
 
   // KKPhim content API (proxied by the CATALOG layer).
   KKPHIM_BASE_URL: z.string().url().default("https://phimapi.com"),
-  // CDN host used to absolutize relative poster/thumb paths from /v1/api/* responses.
-  KKPHIM_CDN_URL: z.string().url().default("https://phimimg.com"),
 
   // Absolute path to the built SPA (dist) — set only in the single-image deploy.
   WEB_STATIC_DIR: z.string().optional(),
