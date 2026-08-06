@@ -1,0 +1,530 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "KKPhim / phimapi.com — Movie Content API",
+    "version": "1.0.0",
+    "description": "Third-party movie catalog API used by XoPhim as its content source (nguồn dữ liệu phim). Public, key-less, read-only. Official docs: https://kkphim.com/tai-lieu-api\n\n## Base URLs\n- **API host**: `https://phimapi.com`\n- **Image CDN**: `https://phimimg.com`\n\n## IMPORTANT image-URL quirk\nImage fields (`poster_url`, `thumb_url`) are returned in two different forms depending on the endpoint:\n- `/danh-sach/phim-moi-cap-nhat*` and `/phim/{slug}` return **absolute** URLs (already `https://phimimg.com/...`).\n- All `/v1/api/*` endpoints (list, the-loai, quoc-gia, nam, tim-kiem) return **relative** paths (e.g. `uploads/movies/.../x-poster.webp`). Prefix them with the `APP_DOMAIN_CDN_IMAGE` value from the same response (`https://phimimg.com`) before use.\n\nWhen persisting into XoPhim's DB, normalize to absolute URLs.\n\n## Video playback\n`/phim/{slug}` returns `episodes[].server_data[]` with `link_m3u8` (HLS stream, feed to an hls.js / video player) and `link_embed` (ready-made iframe player URL).\n\n## Notes\n- All responses are JSON. No auth, no rate-limit documented (be polite: cache + throttle).\n- Text/slugs are Vietnamese. Slugs are URL-safe kebab-case.\n- `limit` max is 64 on `/v1/api/*` endpoints."
+  },
+  "servers": [
+    { "url": "https://phimapi.com", "description": "KKPhim public API host" }
+  ],
+  "tags": [
+    { "name": "Latest", "description": "Phim mới cập nhật — newest-updated feed, cheapest to poll" },
+    { "name": "Detail", "description": "Chi tiết phim + tập/episode links" },
+    { "name": "Browse", "description": "Danh sách theo loại / thể loại / quốc gia / năm (with filters)" },
+    { "name": "Search", "description": "Tìm kiếm theo từ khoá" },
+    { "name": "Taxonomy", "description": "Danh mục thể loại & quốc gia (for building filter UIs)" },
+    { "name": "Image", "description": "On-the-fly image resize / webp conversion" }
+  ],
+  "paths": {
+    "/danh-sach/phim-moi-cap-nhat": {
+      "get": {
+        "tags": ["Latest"],
+        "summary": "Newest-updated movies (v1)",
+        "description": "Flat, lightweight feed of recently added/updated titles. Absolute image URLs. Good for a homepage 'mới cập nhật' rail and for incremental sync (poll page 1, stop when you hit a `_id` you already have).",
+        "operationId": "getLatestV1",
+        "parameters": [{ "$ref": "#/components/parameters/Page" }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LatestResponse" } } }
+          }
+        }
+      }
+    },
+    "/danh-sach/phim-moi-cap-nhat-v2": {
+      "get": {
+        "tags": ["Latest"],
+        "summary": "Newest-updated movies (v2)",
+        "description": "Same shape as v1. v2/v3 are alternate versions kept for compatibility; v3 is the richest (includes category/country on each item). Prefer v3 for new code.",
+        "operationId": "getLatestV2",
+        "parameters": [{ "$ref": "#/components/parameters/Page" }],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LatestResponse" } } } }
+        }
+      }
+    },
+    "/danh-sach/phim-moi-cap-nhat-v3": {
+      "get": {
+        "tags": ["Latest"],
+        "summary": "Newest-updated movies (v3, recommended)",
+        "description": "Recommended latest feed. Each item includes `category[]` and `country[]`. Absolute image URLs.",
+        "operationId": "getLatestV3",
+        "parameters": [{ "$ref": "#/components/parameters/Page" }],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LatestResponse" } } } }
+        }
+      }
+    },
+    "/phim/{slug}": {
+      "get": {
+        "tags": ["Detail"],
+        "summary": "Movie detail + episodes",
+        "description": "Full metadata plus playable episode links. Absolute image URLs. This is the endpoint that returns `episodes[].server_data[].link_m3u8` / `link_embed` for the player.",
+        "operationId": "getMovieDetail",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "description": "Movie slug (e.g. `dong-ho-cat`), taken from any list item's `slug`.",
+            "schema": { "type": "string" },
+            "example": "dong-ho-cat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK. `status:false` when the slug is not found.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MovieDetailResponse" } } }
+          }
+        }
+      }
+    },
+    "/v1/api/danh-sach/{type_list}": {
+      "get": {
+        "tags": ["Browse"],
+        "summary": "Browse by list type (with filters)",
+        "description": "Primary catalog-browsing endpoint. Supports category/country/year filters and sorting. **Relative** image URLs — prefix with `data.APP_DOMAIN_CDN_IMAGE`.",
+        "operationId": "browseByType",
+        "parameters": [
+          {
+            "name": "type_list",
+            "in": "path",
+            "required": true,
+            "description": "Which list to browse.",
+            "schema": {
+              "type": "string",
+              "enum": ["phim-bo", "phim-le", "tv-shows", "hoat-hinh", "phim-vietsub", "phim-thuyet-minh", "phim-long-tieng", "phim-moi"]
+            },
+            "example": "phim-bo"
+          },
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/SortField" },
+          { "$ref": "#/components/parameters/SortType" },
+          { "$ref": "#/components/parameters/SortLang" },
+          { "$ref": "#/components/parameters/FilterCategory" },
+          { "$ref": "#/components/parameters/FilterCountry" },
+          { "$ref": "#/components/parameters/FilterYear" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BrowseResponse" } } } }
+        }
+      }
+    },
+    "/v1/api/the-loai/{slug}": {
+      "get": {
+        "tags": ["Browse"],
+        "summary": "Browse by genre/category",
+        "description": "List movies in a genre. `slug` comes from `GET /the-loai`. Same wrapper + filters as browse-by-type. Relative image URLs.",
+        "operationId": "browseByCategory",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "description": "Category slug (e.g. `hanh-dong`).", "schema": { "type": "string" }, "example": "hanh-dong" },
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/SortField" },
+          { "$ref": "#/components/parameters/SortType" },
+          { "$ref": "#/components/parameters/SortLang" },
+          { "$ref": "#/components/parameters/FilterCountry" },
+          { "$ref": "#/components/parameters/FilterYear" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BrowseResponse" } } } }
+        }
+      }
+    },
+    "/v1/api/quoc-gia/{slug}": {
+      "get": {
+        "tags": ["Browse"],
+        "summary": "Browse by country",
+        "description": "List movies from a country. `slug` comes from `GET /quoc-gia`. Relative image URLs.",
+        "operationId": "browseByCountry",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "description": "Country slug (e.g. `trung-quoc`).", "schema": { "type": "string" }, "example": "trung-quoc" },
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/SortField" },
+          { "$ref": "#/components/parameters/SortType" },
+          { "$ref": "#/components/parameters/SortLang" },
+          { "$ref": "#/components/parameters/FilterCategory" },
+          { "$ref": "#/components/parameters/FilterYear" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BrowseResponse" } } } }
+        }
+      }
+    },
+    "/v1/api/nam/{year}": {
+      "get": {
+        "tags": ["Browse"],
+        "summary": "Browse by release year",
+        "description": "List movies from a release year. Relative image URLs.",
+        "operationId": "browseByYear",
+        "parameters": [
+          { "name": "year", "in": "path", "required": true, "description": "Release year (1970 → current).", "schema": { "type": "integer", "minimum": 1970 }, "example": 2024 },
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/SortField" },
+          { "$ref": "#/components/parameters/SortType" },
+          { "$ref": "#/components/parameters/SortLang" },
+          { "$ref": "#/components/parameters/FilterCategory" },
+          { "$ref": "#/components/parameters/FilterCountry" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BrowseResponse" } } } }
+        }
+      }
+    },
+    "/v1/api/tim-kiem": {
+      "get": {
+        "tags": ["Search"],
+        "summary": "Search by keyword",
+        "description": "Keyword search. Same wrapper + filters as browse. Relative image URLs. `params.keyword` echoes the query.",
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": true,
+            "description": "Search term (Vietnamese or original title fragment).",
+            "schema": { "type": "string" },
+            "example": "cuoc chien"
+          },
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/SortField" },
+          { "$ref": "#/components/parameters/SortType" },
+          { "$ref": "#/components/parameters/SortLang" },
+          { "$ref": "#/components/parameters/FilterCategory" },
+          { "$ref": "#/components/parameters/FilterCountry" },
+          { "$ref": "#/components/parameters/FilterYear" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BrowseResponse" } } } }
+        }
+      }
+    },
+    "/the-loai": {
+      "get": {
+        "tags": ["Taxonomy"],
+        "summary": "List all genres/categories",
+        "description": "Full genre list for building filter menus. Each `slug` feeds `/v1/api/the-loai/{slug}` and the `category` filter param.",
+        "operationId": "listCategories",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TaxonomyResponse" } } } }
+        }
+      }
+    },
+    "/quoc-gia": {
+      "get": {
+        "tags": ["Taxonomy"],
+        "summary": "List all countries",
+        "description": "Full country list. Each `slug` feeds `/v1/api/quoc-gia/{slug}` and the `country` filter param.",
+        "operationId": "listCountries",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TaxonomyResponse" } } } }
+        }
+      }
+    },
+    "/image.php": {
+      "get": {
+        "tags": ["Image"],
+        "summary": "Resize / convert image (webp)",
+        "description": "Image proxy on the API host that resizes and re-encodes a source image (typically a `phimimg.com` poster/thumb) to webp. Use for thumbnails to cut payload. Returns image bytes, not JSON.",
+        "operationId": "resizeImage",
+        "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "required": true,
+            "description": "Absolute URL of the source image to transform.",
+            "schema": { "type": "string", "format": "uri" },
+            "example": "https://phimimg.com/uploads/movies/20260806/dong-ho-cat-poster.webp"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transformed image",
+            "content": { "image/webp": { "schema": { "type": "string", "format": "binary" } } }
+          },
+          "404": { "description": "Missing/invalid `url`" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "description": "1-based page number.",
+        "schema": { "type": "integer", "minimum": 1, "default": 1 }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "description": "Items per page. Max 64.",
+        "schema": { "type": "integer", "minimum": 1, "maximum": 64, "default": 24 }
+      },
+      "SortField": {
+        "name": "sort_field",
+        "in": "query",
+        "description": "Field to sort by. `modified.time` = last updated (default), `_id` = insertion order, `year` = release year.",
+        "schema": { "type": "string", "enum": ["modified.time", "_id", "year"], "default": "modified.time" }
+      },
+      "SortType": {
+        "name": "sort_type",
+        "in": "query",
+        "description": "Sort direction.",
+        "schema": { "type": "string", "enum": ["desc", "asc"], "default": "desc" }
+      },
+      "SortLang": {
+        "name": "sort_lang",
+        "in": "query",
+        "description": "Filter by audio/subtitle track type.",
+        "schema": { "type": "string", "enum": ["vietsub", "thuyet-minh", "long-tieng"] }
+      },
+      "FilterCategory": {
+        "name": "category",
+        "in": "query",
+        "description": "Category/genre slug filter (from `GET /the-loai`), e.g. `hanh-dong`.",
+        "schema": { "type": "string" }
+      },
+      "FilterCountry": {
+        "name": "country",
+        "in": "query",
+        "description": "Country slug filter (from `GET /quoc-gia`), e.g. `trung-quoc`.",
+        "schema": { "type": "string" }
+      },
+      "FilterYear": {
+        "name": "year",
+        "in": "query",
+        "description": "Release-year filter (1970 → current).",
+        "schema": { "type": "integer", "minimum": 1970 }
+      }
+    },
+    "schemas": {
+      "Pagination": {
+        "type": "object",
+        "description": "Pagination block. On `/v1/api/*` it lives at `data.params.pagination`; on latest feeds at top-level `pagination`.",
+        "properties": {
+          "totalItems": { "type": "integer" },
+          "totalItemsPerPage": { "type": "integer" },
+          "currentPage": { "type": "integer" },
+          "totalPages": { "type": "integer" }
+        }
+      },
+      "Tmdb": {
+        "type": "object",
+        "properties": {
+          "id": { "type": ["string", "null"] },
+          "type": { "type": ["string", "null"], "description": "e.g. `movie`, `tv`" },
+          "season": { "type": ["integer", "null"] },
+          "vote_average": { "type": "number" },
+          "vote_count": { "type": "integer" }
+        }
+      },
+      "Imdb": {
+        "type": "object",
+        "properties": {
+          "id": { "type": ["string", "null"] },
+          "vote_average": { "type": "number" },
+          "vote_count": { "type": "integer" }
+        }
+      },
+      "Taxonomy": {
+        "type": "object",
+        "description": "Category/country as embedded in a movie object.",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" }
+        }
+      },
+      "TaxonomyItem": {
+        "type": "object",
+        "description": "Category/country as returned by `/the-loai` and `/quoc-gia` (note `_id`, not `id`).",
+        "properties": {
+          "_id": { "type": "string" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" }
+        }
+      },
+      "MovieListItem": {
+        "type": "object",
+        "description": "A movie as it appears in list/latest/search feeds. Image URLs are absolute on latest feeds, relative on /v1/api/* feeds.",
+        "properties": {
+          "_id": { "type": "string" },
+          "name": { "type": "string", "description": "Vietnamese title" },
+          "slug": { "type": "string", "description": "Use with GET /phim/{slug}" },
+          "origin_name": { "type": "string", "description": "Original-language title" },
+          "alternative_names": { "type": "array", "items": { "type": "string" } },
+          "type": { "type": "string", "description": "`single` (phim lẻ), `series` (phim bộ), `hoathinh`, `tvshows`" },
+          "poster_url": { "type": "string" },
+          "thumb_url": { "type": "string" },
+          "time": { "type": "string", "description": "Runtime label, e.g. `110 phút` or `27 phút/tập`" },
+          "episode_current": { "type": "string", "description": "e.g. `Full`, `Tập 3`, `Hoàn Tất (16/16)`" },
+          "quality": { "type": "string", "description": "e.g. `HD`, `FHD`, `4K`" },
+          "lang": { "type": "string", "description": "e.g. `Vietsub`, `Thuyết Minh`, `Lồng Tiếng`" },
+          "lang_key": { "type": "array", "items": { "type": "string" }, "description": "e.g. `[\"vs\"]`" },
+          "year": { "type": "integer" },
+          "sub_docquyen": { "type": "boolean" },
+          "chieurap": { "type": "boolean", "description": "Cinema/theatrical release" },
+          "tmdb": { "$ref": "#/components/schemas/Tmdb" },
+          "imdb": { "$ref": "#/components/schemas/Imdb" },
+          "modified": { "type": "object", "properties": { "time": { "type": "string", "format": "date-time" } } },
+          "category": { "type": "array", "items": { "$ref": "#/components/schemas/Taxonomy" } },
+          "country": { "type": "array", "items": { "$ref": "#/components/schemas/Taxonomy" } },
+          "last_episodes": {
+            "type": "array",
+            "description": "Present on /v1/api/* feeds; latest state per server.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "server_name": { "type": "string" },
+                "is_ai": { "type": "boolean" },
+                "name": { "type": "string", "description": "e.g. `Tập 03`" }
+              }
+            }
+          }
+        },
+        "required": ["_id", "name", "slug", "type"]
+      },
+      "MovieDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MovieListItem" },
+          {
+            "type": "object",
+            "description": "Extra fields present only on GET /phim/{slug}.",
+            "properties": {
+              "content": { "type": "string", "description": "Synopsis (may contain HTML)" },
+              "status": { "type": "string", "description": "e.g. `completed`, `ongoing`, `trailer`" },
+              "is_copyright": { "type": "boolean" },
+              "is_published": { "type": "boolean" },
+              "trailer_url": { "type": ["string", "null"] },
+              "episode_total": { "type": "integer" },
+              "notify": { "type": "string" },
+              "showtimes": { "type": "string" },
+              "view": { "type": "integer" },
+              "actor": { "type": "array", "items": { "type": "string" } },
+              "director": { "type": "array", "items": { "type": "string" } },
+              "created": { "type": "object", "properties": { "time": { "type": "string", "format": "date-time" } } }
+            }
+          }
+        ]
+      },
+      "ServerData": {
+        "type": "object",
+        "description": "A single playable episode/source.",
+        "properties": {
+          "name": { "type": "string", "description": "Episode label, e.g. `Full`, `Tập 01`" },
+          "slug": { "type": "string" },
+          "filename": { "type": "string" },
+          "link_embed": { "type": "string", "description": "Iframe-ready player URL" },
+          "link_m3u8": { "type": "string", "description": "HLS (.m3u8) stream URL for a custom player" }
+        }
+      },
+      "EpisodeServer": {
+        "type": "object",
+        "description": "One streaming server, grouping its episodes.",
+        "properties": {
+          "server_name": { "type": "string", "description": "e.g. `Vietsub`, `Thuyết Minh #1`" },
+          "is_ai": { "type": "boolean", "description": "AI-generated track" },
+          "server_data": { "type": "array", "items": { "$ref": "#/components/schemas/ServerData" } }
+        }
+      },
+      "SeoOnPage": {
+        "type": "object",
+        "properties": {
+          "og_type": { "type": "string" },
+          "titleHead": { "type": "string" },
+          "descriptionHead": { "type": "string" },
+          "og_image": { "type": "array", "items": { "type": "string" } },
+          "og_url": { "type": "string" }
+        }
+      },
+      "BreadCrumb": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "slug": { "type": "string" },
+            "isCurrent": { "type": "boolean" },
+            "position": { "type": "integer" }
+          }
+        }
+      },
+      "LatestResponse": {
+        "type": "object",
+        "description": "Response of /danh-sach/phim-moi-cap-nhat*. Absolute image URLs.",
+        "properties": {
+          "status": { "type": "boolean" },
+          "msg": { "type": "string" },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/MovieListItem" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "MovieDetailResponse": {
+        "type": "object",
+        "description": "Response of GET /phim/{slug}.",
+        "properties": {
+          "status": { "type": "boolean", "description": "false when not found" },
+          "msg": { "type": "string" },
+          "movie": { "$ref": "#/components/schemas/MovieDetail" },
+          "episodes": { "type": "array", "items": { "$ref": "#/components/schemas/EpisodeServer" } }
+        }
+      },
+      "BrowseResponse": {
+        "type": "object",
+        "description": "Shared wrapper for all /v1/api/* browse & search endpoints. Image URLs inside items are RELATIVE — prefix with data.APP_DOMAIN_CDN_IMAGE.",
+        "properties": {
+          "status": { "type": ["boolean", "string"] },
+          "msg": { "type": "string" },
+          "message": { "type": "string" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "seoOnPage": { "$ref": "#/components/schemas/SeoOnPage" },
+              "breadCrumb": { "$ref": "#/components/schemas/BreadCrumb" },
+              "titlePage": { "type": "string" },
+              "items": { "type": "array", "items": { "$ref": "#/components/schemas/MovieListItem" } },
+              "params": {
+                "type": "object",
+                "description": "Echo of the effective query, incl. pagination.",
+                "properties": {
+                  "type_slug": { "type": "string" },
+                  "keyword": { "type": "string" },
+                  "filterCategory": { "type": "array", "items": { "type": "string" } },
+                  "filterCountry": { "type": "array", "items": { "type": "string" } },
+                  "filterYear": { "type": "array", "items": { "type": "string" } },
+                  "filterType": { "type": "array", "items": { "type": "string" } },
+                  "sortField": { "type": "string" },
+                  "sortType": { "type": "string" },
+                  "pagination": { "$ref": "#/components/schemas/Pagination" }
+                }
+              },
+              "type_list": { "type": "string" },
+              "APP_DOMAIN_FRONTEND": { "type": "string" },
+              "APP_DOMAIN_CDN_IMAGE": { "type": "string", "description": "Prefix for relative poster_url/thumb_url. Value: https://phimimg.com" }
+            }
+          }
+        }
+      },
+      "TaxonomyResponse": {
+        "type": "object",
+        "description": "Response of /the-loai and /quoc-gia.",
+        "properties": {
+          "status": { "type": "string", "description": "`success`" },
+          "message": { "type": "string" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "items": { "type": "array", "items": { "$ref": "#/components/schemas/TaxonomyItem" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

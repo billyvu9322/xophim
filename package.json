@@ -1,0 +1,25 @@
+{
+  "name": "xophim",
+  "version": "0.1.0",
+  "private": true,
+  "description": "XoPhim — movie streaming website (codebase scaffold)",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "db:generate": "pnpm --filter @xophim/api db:generate",
+    "db:migrate": "pnpm --filter @xophim/api db:migrate",
+    "db:push": "pnpm --filter @xophim/api db:push",
+    "package:zip": "node scripts/package-deploy.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.19",
+    "turbo": "^2.9.15",
+    "typescript": "^5.9.3",
+    "yazl": "^3.3.1"
+  }
+}

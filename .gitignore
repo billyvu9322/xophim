@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.turbo/
+*.log
+.DS_Store
+
+# Deploy artifact
+xophim.zip
+
+# Env files (keep .env.example)
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+.idea/
