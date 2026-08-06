@@ -1,17 +1,36 @@
+# Dependencies
 node_modules/
+.pnpm-store/
+
+# Build output
 dist/
-.turbo/
-*.log
-.DS_Store
+build/
+*.tsbuildinfo
 
-# Deploy artifact
-xophim.zip
-
-# Env files (keep .env.example)
+# Env
 .env
-.env.*
-!.env.example
+.env.local
+.env.*.local
+.env.production
+.env.development
 
-# Editor
-.vscode/
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
 .idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Test / coverage
+coverage/
+
+# Docker volumes
+.docker/pgdata/
+
+*.zip
+
+.turbo
