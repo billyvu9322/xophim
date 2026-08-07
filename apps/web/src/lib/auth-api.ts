@@ -26,6 +26,13 @@ export const authApi = {
     return res.data.user;
   },
 
+  // POST /v1/auth/google — verifies a Google access token (from the GIS implicit
+  // flow, useGoogleLogin) server-side and creates a session.
+  loginWithGoogle: async (accessToken: string): Promise<AuthUser> => {
+    const res = await api.post<{ user: AuthUser }>("/auth/google", { accessToken });
+    return res.data.user;
+  },
+
   // POST /v1/auth/logout — clears the session; throws if not authenticated.
   logout: async (): Promise<void> => {
     await api.post("/auth/logout");

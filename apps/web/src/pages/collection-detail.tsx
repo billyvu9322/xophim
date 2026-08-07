@@ -1,7 +1,8 @@
 import { useParams } from "@tanstack/react-router";
 import { useCollection } from "@/hooks/collections";
 import { MovieGrid } from "@/components/MovieGrid";
-import { LoadingState, ErrorState, EmptyState } from "@/components/ui/states";
+import { ErrorState, EmptyState } from "@/components/ui/states";
+import { CollectionDetailSkeleton } from "@/components/ui/skeletons";
 import type { MovieCardData } from "@/components/MovieCard";
 import type { CollectionItem } from "@/lib/collections-types";
 
@@ -21,7 +22,7 @@ export function CollectionDetailPage() {
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-6 space-y-6">
-      {isLoading && <LoadingState />}
+      {isLoading && <CollectionDetailSkeleton />}
       {error && <ErrorState />}
 
       {!isLoading && !error && !data && <EmptyState />}
@@ -34,6 +35,9 @@ export function CollectionDetailPage() {
               <img
                 src={data.cover_url}
                 alt={data.title}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
                 className="absolute inset-0 h-full w-full object-cover"
               />
             ) : null}

@@ -16,6 +16,17 @@ body {
   @apply bg-canvas font-sans text-white antialiased;
 }
 
+/* iOS Safari auto-zooms when a focused form control has font-size < 16px and
+   never zooms back out. Force >=16px on small screens to stop the zoom; desktop
+   keeps the smaller Tailwind sizes. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Thin dark scrollbars to match the nocturnal theme. */
 * {
   scrollbar-width: thin;

@@ -86,10 +86,15 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
         playing={playing}
         config={{
           file: {
-            forceHLS: src.includes(".m3u8"),
+            // Do NOT force hls.js: iOS Safari plays HLS natively but has no MSE
+            // for video, so forcing hls.js breaks playback there. react-player
+            // already falls back to hls.js on browsers without native HLS
+            // (Chrome/Firefox/Android), so leaving this off works everywhere.
+            forceHLS: false,
             attributes: {
               poster,
               preload: "metadata",
+              playsInline: true,
               controlsList: "nodownload",
             },
           },

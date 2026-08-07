@@ -43,7 +43,13 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.setSerializerCompiler(serializerCompiler);
 
   // Plugins. credentials:true (cookies) needs an explicit origin allow-list.
-  await app.register(helmet, { contentSecurityPolicy: false });
+  // COOP defaults to "same-origin", which severs window.opener for OAuth popups
+  // (Google Identity Services returns the token via the opener). Relax it so the
+  // GIS sign-in popup can post its result back; isolation is otherwise preserved.
+  await app.register(helmet, {
+    contentSecurityPolicy: false,
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+  });
   await app.register(cors, { origin: env.CORS_ORIGIN, credentials: true });
   await app.register(cookie);
   await app.register(rateLimit, { max: 100, timeWindow: "1 minute" });

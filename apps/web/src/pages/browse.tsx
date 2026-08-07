@@ -1,7 +1,8 @@
 import { useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { InfiniteMovieGrid } from "@/components/InfiniteMovieGrid";
-import { LoadingState, ErrorState, EmptyState } from "@/components/ui/states";
+import { ErrorState, EmptyState } from "@/components/ui/states";
+import { MovieGridSkeleton } from "@/components/ui/skeletons";
 import { useInfiniteMovieList, useFilters } from "@/hooks/catalog";
 import { cn } from "@/lib/utils";
 import type { ListParams } from "@/lib/catalog-api";
@@ -169,7 +170,7 @@ export function BrowsePage() {
 
       {/* Content */}
       {isLoading ? (
-        <LoadingState />
+        <MovieGridSkeleton />
       ) : isError ? (
         <ErrorState />
       ) : movies.length === 0 ? (

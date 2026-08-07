@@ -5,6 +5,10 @@ import { defineConfig } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Read env from the workspace root so web + api share one set of .env files
+  // (root .env / .env.development / .env.production). Vite defaults to the
+  // package dir, which would hide the root VITE_* vars.
+  envDir: fileURLToPath(new URL("../../", import.meta.url)),
   plugins: [react()],
   resolve: {
     alias: {

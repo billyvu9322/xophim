@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { useCollections } from "@/hooks/collections";
-import { LoadingState, ErrorState, EmptyState } from "@/components/ui/states";
+import { ErrorState, EmptyState } from "@/components/ui/states";
+import { CollectionsSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
 import type { Collection } from "@/lib/collections-types";
 
@@ -19,7 +20,10 @@ function CollectionCard({ c }: { c: Collection }) {
             src={c.cover_url}
             alt={c.title}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+            className="h-full w-full bg-gradient-to-br from-chrome via-elevated to-chrome object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : null}
 
@@ -51,7 +55,7 @@ export function CollectionsPage() {
     <div className="mx-auto max-w-[1600px] px-4 py-6 space-y-6">
       <h1 className="text-2xl font-semibold text-white">Chủ Đề</h1>
 
-      {isLoading && <LoadingState />}
+      {isLoading && <CollectionsSkeleton />}
       {error && <ErrorState />}
 
       {!isLoading && !error && data && data.length === 0 && (

@@ -58,62 +58,15 @@ export function useMergeGuest() {
   });
 }
 
-function waitForGooglePopup(): Promise<void> {
-  const width = 500;
-  const height = 640;
-  const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
-  const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
-  const popup = window.open(
-    "/v1/auth/google?mode=popup",
-    "google-login",
-    `popup=yes,width=${width},height=${height},left=${left},top=${top}`,
-  );
-
-  if (!popup) {
-    window.location.href = "/v1/auth/google";
-    return Promise.reject(new Error("Trình duyệt đã chặn cửa sổ đăng nhập Google"));
-  }
-
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      cleanup();
-      reject(new Error("Đăng nhập Google mất quá lâu, vui lòng thử lại"));
-    }, 120_000);
-
-    const closedCheck = window.setInterval(() => {
-      if (popup.closed) {
-        cleanup();
-        reject(new Error("Bạn đã đóng cửa sổ đăng nhập Google"));
-      }
-    }, 500);
-
-    const cleanup = () => {
-      window.clearTimeout(timeout);
-      window.clearInterval(closedCheck);
-      window.removeEventListener("message", onMessage);
-    };
-
-    const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if ((event.data as { type?: string })?.type !== "google-auth-success") return;
-
-      cleanup();
-      popup.close();
-      resolve();
-    };
-
-    window.addEventListener("message", onMessage);
-  });
-}
-
-export function useGooglePopupLogin() {
+// useLoginWithGoogle: verify a Google access token (from the GIS implicit flow,
+// useGoogleLogin) server-side → session cookie, then merge any guest data and
+// prime the me cache.
+export function useLoginWithGoogle() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
-      await waitForGooglePopup();
-      const user = await authApi.me();
-      if (!user) throw new Error("Đăng nhập Google thất bại, vui lòng thử lại");
+    mutationFn: async (accessToken: string) => {
+      const user = await authApi.loginWithGoogle(accessToken);
 
       const { watchlist, progress, clear } = useGuestStore.getState();
       if (watchlist.length > 0 || progress.length > 0) {

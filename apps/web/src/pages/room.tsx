@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { VideoPlayer, type VideoPlayerHandle } from "@/components/VideoPlayer";
 import { Button } from "@/components/ui/Button";
-import { ErrorState, LoadingState } from "@/components/ui/states";
+import { ErrorState } from "@/components/ui/states";
+import { WatchSkeleton } from "@/components/ui/skeletons";
 import { useAuth } from "@/hooks/auth";
 import { useMovieDetail } from "@/hooks/catalog";
 import { useRoom } from "@/hooks/rooms";
@@ -17,7 +18,7 @@ export function RoomPage() {
   const { data: room, isLoading, error } = useRoom(code);
   const { data: user } = useAuth();
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return <WatchSkeleton />;
   if (error || !room) return <ErrorState label="Không tìm thấy phòng hoặc phòng đã đóng" />;
 
   const displayName = user?.username ?? user?.email?.split("@")[0] ?? "Khách";

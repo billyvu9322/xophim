@@ -36,7 +36,7 @@
 - `lib/catalog-types.ts` — *create*: mirror of the API's XoPhim response types.
 - `lib/catalog-api.ts` — *create*: typed functions calling `/v1/catalog/*`.
 - `hooks/catalog.ts` — *create*: TanStack Query hooks + query keys.
-- `routes/` — *create*: minimal Router skeleton (Home/Browse/Search/Watch placeholders wired to hooks).
+- `pages/` — *create*: minimal Router skeleton (Home/Browse/Search/Watch placeholders wired to hooks).
 - `main.tsx` — *modify*: mount `RouterProvider`.
 
 ---

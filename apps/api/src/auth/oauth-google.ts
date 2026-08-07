@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { OAuth2Client } from "google-auth-library";
 
 // ---------- PKCE helpers ----------
 
@@ -80,6 +81,53 @@ export async function exchangeCode(opts: {
   }
   const json = (await res.json()) as { access_token: string; id_token: string };
   return { accessToken: json.access_token, idToken: json.id_token };
+}
+
+// Verify a Google Identity Services ID token (from the `@react-oauth/google`
+// <GoogleLogin> credential) and return the profile. Audience must match the
+// client id the token was minted for. Throws on invalid/expired tokens.
+const idTokenClients = new Map<string, OAuth2Client>();
+export async function verifyGoogleIdToken(
+  idToken: string,
+  clientId: string,
+): Promise<GoogleUserInfo> {
+  let client = idTokenClients.get(clientId);
+  if (!client) {
+    client = new OAuth2Client(clientId);
+    idTokenClients.set(clientId, client);
+  }
+  const ticket = await client.verifyIdToken({ idToken, audience: clientId });
+  const payload = ticket.getPayload();
+  if (!payload?.sub || !payload.email) {
+    throw new Error("Google ID token missing sub/email");
+  }
+  return {
+    sub: payload.sub,
+    email: payload.email,
+    name: payload.name ?? payload.email,
+    picture: payload.picture ?? null,
+  };
+}
+
+// Verify an OAuth access token BELONGS to our client before trusting the
+// identity it unlocks. An access token minted for a different app must never be
+// accepted (token/audience confusion) — /tokeninfo returns `aud`/`azp` which
+// must equal our client id. Only then do we read the profile via userinfo.
+export async function verifyGoogleAccessToken(
+  accessToken: string,
+  clientId: string,
+): Promise<GoogleUserInfo> {
+  const res = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
+  );
+  if (!res.ok) {
+    throw new Error(`Google tokeninfo failed: ${res.status}`);
+  }
+  const info = (await res.json()) as { aud?: string; azp?: string };
+  if (info.aud !== clientId && info.azp !== clientId) {
+    throw new Error("Google access token audience mismatch");
+  }
+  return fetchGoogleUserInfo(accessToken);
 }
 
 export async function fetchGoogleUserInfo(

@@ -1,6 +1,7 @@
 import { useHistory } from "@/hooks/user-state";
 import { MovieCard } from "@/components/MovieCard";
-import { LoadingState, ErrorState, EmptyState } from "@/components/ui/states";
+import { ErrorState, EmptyState } from "@/components/ui/states";
+import { MovieGridSkeleton } from "@/components/ui/skeletons";
 import { timeAgo } from "@/lib/format";
 
 export function HistoryPage() {
@@ -16,7 +17,7 @@ export function HistoryPage() {
       <h1 className="text-2xl font-semibold text-white">Lịch Sử Xem</h1>
 
       {isLoading ? (
-        <LoadingState />
+        <MovieGridSkeleton />
       ) : error ? (
         <ErrorState />
       ) : sorted.length === 0 ? (

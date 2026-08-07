@@ -1,7 +1,8 @@
 import { useWatchlist } from "@/hooks/user-state";
 import { MovieGrid } from "@/components/MovieGrid";
 import type { MovieCardData } from "@/components/MovieCard";
-import { LoadingState, ErrorState, EmptyState } from "@/components/ui/states";
+import { ErrorState, EmptyState } from "@/components/ui/states";
+import { MovieGridSkeleton } from "@/components/ui/skeletons";
 
 export function WatchlistPage() {
   const { items, isLoading, error } = useWatchlist();
@@ -18,7 +19,7 @@ export function WatchlistPage() {
       <h1 className="text-2xl font-semibold text-white">Danh Sách Của Tôi</h1>
 
       {isLoading ? (
-        <LoadingState />
+        <MovieGridSkeleton />
       ) : error ? (
         <ErrorState />
       ) : movies.length === 0 ? (

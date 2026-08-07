@@ -1,6 +1,7 @@
 import { useSearch as useRouterSearch } from "@tanstack/react-router";
 import { InfiniteMovieGrid } from "@/components/InfiniteMovieGrid";
-import { LoadingState, ErrorState, EmptyState } from "@/components/ui/states";
+import { ErrorState, EmptyState } from "@/components/ui/states";
+import { MovieGridSkeleton } from "@/components/ui/skeletons";
 import { useInfiniteSearch } from "@/hooks/catalog";
 
 export function SearchPage() {
@@ -28,7 +29,7 @@ export function SearchPage() {
 
       {/* Content */}
       {isLoading ? (
-        <LoadingState />
+        <MovieGridSkeleton />
       ) : isError ? (
         <ErrorState />
       ) : movies.length === 0 ? (

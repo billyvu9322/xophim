@@ -12,9 +12,14 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 RUN pnpm install --frozen-lockfile
-# Build the web SPA (Vite). VITE_API_BASE_URL is baked at build time.
-ARG VITE_API_BASE_URL=/v1
+# Build the web SPA (Vite). VITE_* are baked at build time. We pass them as
+# build args (NOT via .env.production, which is dockerignored because it holds
+# GOOGLE_CLIENT_SECRET — secrets must never be baked into the image). The Google
+# client id is public, so it's safe to default here; override with --build-arg.
+ARG VITE_API_BASE_URL=
+ARG VITE_GOOGLE_CLIENT_ID=
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 COPY . .
 RUN pnpm --filter @xophim/web build
 

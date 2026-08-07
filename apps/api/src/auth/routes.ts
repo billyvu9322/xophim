@@ -8,6 +8,8 @@ import {
   fetchGoogleUserInfo,
   generatePkce,
   generateState,
+  verifyGoogleAccessToken,
+  verifyGoogleIdToken,
 } from "./oauth-google.js";
 import { createSession, deleteSession, lookupSession } from "./session.js";
 import { loginUser, mergeGuest, oauthLink, registerUser } from "./service.js";
@@ -143,7 +145,69 @@ export const registerAuthRoutes: FastifyPluginAsyncZod = async (app) => {
   );
 
   // ------------------------------------------------------------------ //
-  //  GET /google  — redirect to Google OAuth                             //
+  //  POST /google  — Google Identity Services (GIS) sign-in.             //
+  //  Web uses @react-oauth/google useGoogleLogin (implicit) and sends    //
+  //  the access token; we fetch the profile and issue our session cookie //
+  //  (same model as /login). Also accepts an ID token if provided.       //
+  // ------------------------------------------------------------------ //
+  app.post(
+    "/google",
+    {
+      schema: {
+        body: z
+          .object({
+            accessToken: z.string().min(1).optional(),
+            idToken: z.string().min(1).optional(),
+          })
+          .refine((b) => b.accessToken || b.idToken, {
+            message: "accessToken hoặc idToken là bắt buộc",
+          }),
+        response: {
+          200: z.object({ user: userResponse }),
+          400: z.object({ error: z.string() }),
+          401: z.object({ error: z.string() }),
+          503: z.object({ error: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const clientId = app.env.GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        return reply.code(503).send({ error: "Google OAuth is not configured" });
+      }
+
+      // Both paths validate the token's audience == our client id before
+      // trusting the identity (prevents access-token / audience confusion).
+      let googleUser;
+      try {
+        googleUser = request.body.accessToken
+          ? await verifyGoogleAccessToken(request.body.accessToken, clientId)
+          : await verifyGoogleIdToken(request.body.idToken!, clientId);
+      } catch {
+        return reply.code(401).send({ error: "Xác thực Google thất bại" });
+      }
+
+      const user = await oauthLink(db, {
+        provider: "google",
+        providerUid: googleUser.sub,
+        email: googleUser.email,
+        displayName: googleUser.name,
+        avatarUrl: googleUser.picture,
+      });
+
+      const sid = await createSession(db, {
+        userId: user.id,
+        ttlDays: app.env.SESSION_TTL_DAYS,
+        userAgent: request.headers["user-agent"],
+        ip: request.ip,
+      });
+      reply.setCookie(SID, sid, sidCookieOptions(app.env.SESSION_TTL_DAYS));
+      return reply.send({ user });
+    },
+  );
+
+  // ------------------------------------------------------------------ //
+  //  GET /google  — redirect to Google OAuth (legacy redirect flow)      //
   // ------------------------------------------------------------------ //
   app.get("/google", async (request, reply) => {
     const clientId = app.env.GOOGLE_CLIENT_ID;

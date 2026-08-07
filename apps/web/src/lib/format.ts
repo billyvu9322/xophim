@@ -49,6 +49,60 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
+// Parse an episode count from a KKPhim `episodeCurrent` string.
+// "Hoàn Tất (12/12)" → 12 · "Tập 5" → 5 · "Full"/"Trọn bộ" → null.
+export function episodeCount(episodeCurrent: string): number | null {
+  const s = episodeCurrent ?? "";
+  const frac = s.match(/(\d+)\s*\/\s*(\d+)/);
+  if (frac && frac[2]) return Number(frac[2]);
+  const single = s.match(/(\d+)/);
+  if (single && single[1]) return Number(single[1]);
+  return null;
+}
+
+// Short Vietnamese airing status derived from `episodeCurrent`.
+export function statusLabel(episodeCurrent: string): string {
+  const s = (episodeCurrent ?? "").toLowerCase();
+  if (s.includes("hoàn") || s.includes("full") || s.includes("trọn")) return "Đã hoàn thành";
+  if (s.includes("tập") || s.includes("/")) return "Đang chiếu";
+  return "Đã phát hành";
+}
+
+// KKPhim `type` → short Vietnamese label for the hover badge.
+export function typeLabel(type: string): string {
+  switch ((type ?? "").toLowerCase()) {
+    case "series":
+    case "phim-bo":
+      return "Phim Bộ";
+    case "single":
+    case "phim-le":
+      return "Phim Lẻ";
+    case "hoathinh":
+    case "hoat-hinh":
+      return "Hoạt Hình";
+    case "tvshows":
+    case "tv-shows":
+      return "TV";
+    default:
+      return type || "Phim";
+  }
+}
+
+// Extract a YouTube video id from a watch / youtu.be / embed URL → null if none.
+export function youtubeEmbedId(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const patterns = [
+    /[?&]v=([\w-]{11})/,
+    /youtu\.be\/([\w-]{11})/,
+    /\/embed\/([\w-]{11})/,
+  ];
+  for (const re of patterns) {
+    const m = url.match(re);
+    if (m && m[1]) return m[1];
+  }
+  return null;
+}
+
 // Seconds → "mm:ss" or "h:mm:ss".
 export function formatDuration(totalSec: number): string {
   const s = Math.max(0, Math.floor(totalSec));

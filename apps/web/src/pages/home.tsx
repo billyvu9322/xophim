@@ -4,35 +4,53 @@ import { useMemo, useState } from "react";
 import { Autoplay } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import type { Swiper as SwiperInstance } from "swiper";
-import "swiper/css";
 import { MovieCard } from "@/components/MovieCard";
 import { MovieRail } from "@/components/MovieRail";
 import { Button } from "@/components/ui/Button";
-import { ErrorState, LoadingState } from "@/components/ui/states";
-import { useHome } from "@/hooks/catalog";
+import { Poster } from "@/components/ui/Poster";
+import { ErrorState } from "@/components/ui/states";
+import { HomeSkeleton } from "@/components/ui/skeletons";
+import { useHome, useMovieDetail } from "@/hooks/catalog";
 import { useDeleteHistory, useHistory } from "@/hooks/user-state";
 import type { Movie } from "@/lib/catalog-types";
-import { langBadges } from "@/lib/format";
+import { langBadges, stripHtml } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+import "swiper/css";
 
 export function HomePage() {
   const { data, isLoading, error } = useHome();
   const { items: history } = useHistory();
   const deleteHistory = useDeleteHistory();
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return <HomeSkeleton />;
   if (error || !data) return <ErrorState />;
 
   const spotlight = data.latest.slice(0, 5);
   const trending = data.latest.slice(0, 10);
 
-  const continueWatching = history.slice(0, 12).map((h) => ({
-    slug: h.movie_slug,
-    name: h.movie_snapshot.name,
-    posterUrl: h.movie_snapshot.posterUrl,
-    year: h.movie_snapshot.year,
-    progress: h.duration_sec ? h.position_sec / h.duration_sec : 0,
-  }));
+  // Continue-watching = ONE card per movie (the most recently watched episode).
+  // History has a row per (movie, episode); dedupe by slug keeping the latest so
+  // a movie watched across 2 episodes doesn't show up twice.
+  const seenSlugs = new Set<string>();
+  const continueWatching = [...history]
+    .sort(
+      (a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+    )
+    .filter((h) => {
+      if (seenSlugs.has(h.movie_slug)) return false;
+      seenSlugs.add(h.movie_slug);
+      return true;
+    })
+    .slice(0, 12)
+    .map((h) => ({
+      slug: h.movie_slug,
+      name: h.movie_snapshot.name,
+      posterUrl: h.movie_snapshot.posterUrl,
+      year: h.movie_snapshot.year,
+      progress: h.duration_sec ? h.position_sec / h.duration_sec : 0,
+    }));
 
   return (
     <div>
@@ -147,10 +165,18 @@ function Spotlight({ movies }: { movies: Movie[] }) {
   const [idx, setIdx] = useState(0);
   const [swiper, setSwiper] = useState<SwiperInstance | null>(null);
 
+  // Description lives on the detail endpoint, not the latest feed — fetch it for
+  // the active slide only (cached), so the hero can show a short synopsis.
+  const active = movies[idx];
+  const { data: activeDetail } = useMovieDetail(active?.slug ?? "");
+  const activeDesc = activeDetail?.movie.content
+    ? stripHtml(activeDetail.movie.content)
+    : "";
+
   if (movies.length === 0) return null;
 
   return (
-    <section className="relative h-[420px] w-full overflow-hidden sm:h-[520px]">
+    <section className="relative h-[60vh] min-h-[440px] w-full overflow-hidden sm:h-[calc(100vh-4rem)] sm:max-h-[820px]">
       <Swiper
         modules={[Autoplay]}
         autoplay={
@@ -172,6 +198,9 @@ function Spotlight({ movies }: { movies: Movie[] }) {
               <img
                 src={m.thumbUrl || m.posterUrl}
                 alt={m.name}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
                 className="absolute inset-0 h-full w-full object-cover brightness-110 saturate-110"
               />
               <div className="absolute inset-0 bg-black/15" />
@@ -209,8 +238,11 @@ function Spotlight({ movies }: { movies: Movie[] }) {
                     ))}
                   </div>
                   {m.originName && (
-                    <p className="line-clamp-2 text-sm text-silver">
-                      {m.originName}
+                    <p className="text-sm text-silver">{m.originName}</p>
+                  )}
+                  {i === idx && activeDesc && (
+                    <p className="line-clamp-3 max-w-xl text-sm leading-relaxed text-silver/90">
+                      {activeDesc}
                     </p>
                   )}
                   <div className="flex gap-3 pt-2">
@@ -302,12 +334,14 @@ function Top10({ tabs }: { tabs: Record<string, Movie[]> }) {
                 >
                   {i + 1}
                 </span>
-                <img
-                  src={m.posterUrl}
-                  alt={m.name}
-                  className="h-16 w-11 shrink-0 object-cover"
-                  loading="lazy"
-                />
+                <div className="h-16 w-11 shrink-0 overflow-hidden rounded bg-elevated">
+                  <Poster
+                    src={m.posterUrl}
+                    alt={m.name}
+                    compact
+                    imgClassName="h-full w-full object-cover"
+                  />
+                </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-white group-hover:text-gold">
                     {m.name}
