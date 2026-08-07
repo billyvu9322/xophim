@@ -49,6 +49,7 @@ export function HomePage() {
       name: h.movie_snapshot.name,
       posterUrl: h.movie_snapshot.posterUrl,
       year: h.movie_snapshot.year,
+      episodeSlug: h.episode_slug,
       progress: h.duration_sec ? h.position_sec / h.duration_sec : 0,
     }));
 
@@ -69,7 +70,11 @@ export function HomePage() {
                       key={m.slug}
                       className="group relative w-[140px] shrink-0 sm:w-[160px]"
                     >
-                      <MovieCard movie={m} progress={m.progress} />
+                      <MovieCard
+                        movie={m}
+                        progress={m.progress}
+                        episodeSlug={m.episodeSlug}
+                      />
                       <button
                         type="button"
                         aria-label={`Xóa ${m.name} khỏi Xem Tiếp`}

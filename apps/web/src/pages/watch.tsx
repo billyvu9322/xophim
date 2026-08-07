@@ -286,7 +286,7 @@ function WatchView({
           />
         )}
 
-        <div className="space-y-4">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
           {/* joined block: Danh Sách Tập + player + controls (frosted over backdrop).
               backdrop-blur creates a stacking context, so lift the whole block
               above the lights-off overlay (z-30) when theater mode is on. */}
@@ -299,7 +299,7 @@ function WatchView({
             <div className="flex flex-col lg:flex-row">
               {/* episodes — flush against the player. On mobile the player comes
                   first (order) so it isn't buried under a long episode list. */}
-              <div className="order-2 border-t border-slate/50 lg:order-1 lg:w-[240px] lg:shrink-0 lg:border-t-0 lg:border-r">
+              <div className="order-2 border-t border-slate/50 lg:relative lg:order-1 lg:w-[240px] lg:shrink-0 lg:overflow-hidden lg:border-t-0 lg:border-r">
                 <EpisodeSidebar
                   items={items}
                   currentSlug={currentEpisode?.slug}
@@ -446,20 +446,19 @@ function WatchView({
             </div>
           </div>
 
-          {/* movie info — full-width details panel below the player */}
-          <aside className="rounded-lg bg-chrome/40 p-4 ring-1 ring-white/5">
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <div className="w-[120px] shrink-0 overflow-hidden rounded">
-                <div className="aspect-[2/3]">
-                  <Poster
-                    src={movie.posterUrl}
-                    alt={movie.name}
-                    label={movie.name}
-                  />
-                </div>
+          {/* col 3 — movie info (beside the player) */}
+          <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+            <div className="w-48 max-w-[120px] overflow-hidden rounded lg:w-full">
+              <div className="aspect-[2/3]">
+                <Poster
+                  src={movie.posterUrl}
+                  alt={movie.name}
+                  label={movie.name}
+                />
               </div>
+            </div>
 
-              <div className="min-w-0 flex-1 space-y-3">
+            <div className="space-y-3">
               <h1 className="text-xl font-bold text-white">{movie.name}</h1>
               {movie.originName && (
                 <p className="text-sm text-muted">{movie.originName}</p>
@@ -531,10 +530,9 @@ function WatchView({
                   <InfoRow label="Trạng thái" value={movie.status} />
                 )}
               </dl>
-
-              <RatingBlock slug={slug} />
-              </div>
             </div>
+
+            <RatingBlock slug={slug} />
           </aside>
         </div>
 
@@ -581,7 +579,7 @@ function EpisodeSidebar({
     : items;
 
   return (
-    <div className="max-h-[320px] overflow-y-auto p-3 lg:max-h-[560px]">
+    <div className="max-h-[320px] overflow-y-auto p-3 lg:absolute lg:inset-0 lg:max-h-none">
       <h2 className="mb-2 text-sm font-semibold text-white">Danh Sách Tập</h2>
       <div className="relative mb-2">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />

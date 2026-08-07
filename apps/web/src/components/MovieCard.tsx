@@ -31,6 +31,9 @@ interface MovieCardProps {
   progress?: number;
   /** Trending rank → large faint outline numeral beside the poster. */
   rank?: number;
+  /** When set, the card links straight to this episode (?tap=) — used by
+      "Xem Tiếp" so a click resumes the exact episode + timeline. */
+  episodeSlug?: string;
 }
 
 const HOVER_OPEN_DELAY = 180;
@@ -39,7 +42,7 @@ const HOVER_CLOSE_DELAY = 120;
 // Sharp-cornered 2:3 poster. Whole card links straight to the player (instant
 // play). On hover an AniWatch-style info popover floats over the grid (portaled
 // to <body> so it escapes the rail's overflow clipping).
-export function MovieCard({ movie, progress, rank }: MovieCardProps) {
+export function MovieCard({ movie, progress, rank, episodeSlug }: MovieCardProps) {
   const anchorRef = useRef<HTMLDivElement>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const openTimer = useRef<number | undefined>(undefined);
@@ -75,7 +78,12 @@ export function MovieCard({ movie, progress, rank }: MovieCardProps) {
       onMouseLeave={scheduleClose}
       className="group"
     >
-      <Link to="/xem/$slug" params={{ slug: movie.slug }} className="block">
+      <Link
+        to="/xem/$slug"
+        params={{ slug: movie.slug }}
+        search={episodeSlug ? { tap: episodeSlug } : undefined}
+        className="block"
+      >
         <div className="relative aspect-[2/3] overflow-hidden rounded bg-elevated">
           <Poster
             src={movie.posterUrl}
