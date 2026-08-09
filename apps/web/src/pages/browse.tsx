@@ -51,8 +51,13 @@ export function BrowsePage() {
     ...(year !== "" ? { year } : {}),
   };
 
-  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } =
-    useInfiniteMovieList(type, listParams);
+  const {
+    data,
+    isLoading,
+    isError,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteMovieList(type, listParams);
   const movies = data?.pages.flatMap((pageData) => pageData.items) ?? [];
 
   const title = TYPE_LABELS[type] ?? type;
@@ -179,7 +184,6 @@ export function BrowsePage() {
         <InfiniteMovieGrid
           movies={movies}
           hasMore={Boolean(hasNextPage)}
-          isLoadingMore={isFetchingNextPage}
           loadMore={() => void fetchNextPage()}
         />
       )}

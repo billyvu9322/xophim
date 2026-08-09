@@ -137,7 +137,10 @@ describe("progress / history", () => {
     const hist = await app.inject({ method: "GET", url: "/v1/me/history", headers: authCookie() });
     expect(hist.statusCode).toBe(200);
     expect(hist.json().items).toHaveLength(1); // upsert, not a second row
+    expect(hist.json().items[0].episode_slug).toBe("full");
+    expect(hist.json().items[0].server_name).toBe("Vietsub");
     expect(hist.json().items[0].position_sec).toBe(300);
+    expect(hist.json().items[0].duration_sec).toBe(6600);
   });
 
   it("validates the progress body (400 on missing fields)", async () => {

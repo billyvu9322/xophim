@@ -1,7 +1,28 @@
 import { Link } from "@tanstack/react-router";
 import { Logo } from "./ui/Logo";
 
-const AZ = ["A", "B", "C", "D", "E", "G", "H", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "X", "Y", "0-9"];
+const AZ = [
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "G",
+  "H",
+  "K",
+  "L",
+  "M",
+  "N",
+  "P",
+  "Q",
+  "R",
+  "S",
+  "T",
+  "V",
+  "X",
+  "Y",
+  "0-9",
+];
 
 // Charcoal footer with an A–Z filter strip + link columns + disclaimer (§5).
 export function Footer() {
@@ -63,7 +84,13 @@ export function Footer() {
   );
 }
 
-function FooterCol({ title, links }: { title: string; links: { label: string; to: string }[] }) {
+function FooterCol({
+  title,
+  links,
+}: {
+  title: string;
+  links: { label: string; to: string }[];
+}) {
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-semibold text-white">{title}</h3>

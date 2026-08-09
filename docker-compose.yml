@@ -25,6 +25,8 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is required}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:?GOOGLE_REDIRECT_URI is required}
+      
+      PLAYLIST_CLEANUP_ALLOWED_HOSTS: ${PLAYLIST_CLEANUP_ALLOWED_HOSTS:?PLAYLIST_CLEANUP_ALLOWED_HOSTS is required}
     extra_hosts:
       # Linux: lets host.docker.internal resolve to the VM host IP (for the host PostgreSQL).
       - "host.docker.internal:host-gateway"

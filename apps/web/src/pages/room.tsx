@@ -19,13 +19,24 @@ export function RoomPage() {
   const { data: user } = useAuth();
 
   if (isLoading) return <WatchSkeleton />;
-  if (error || !room) return <ErrorState label="Không tìm thấy phòng hoặc phòng đã đóng" />;
+  if (error || !room)
+    return <ErrorState label="Không tìm thấy phòng hoặc phòng đã đóng" />;
 
   const displayName = user?.username ?? user?.email?.split("@")[0] ?? "Khách";
-  return <RoomView code={code} movieSlug={room.movieSlug} episodeSlug={room.episodeSlug} name={displayName} />;
+  return (
+    <RoomView
+      code={code}
+      movieSlug={room.movieSlug}
+      episodeSlug={room.episodeSlug}
+      name={displayName}
+    />
+  );
 }
 
-function findStream(movie: MovieDetail | undefined, episodeSlug: string): string {
+function findStream(
+  movie: MovieDetail | undefined,
+  episodeSlug: string,
+): string {
   if (!movie) return "";
   for (const server of movie.episodes) {
     const ep = server.items.find((e) => e.slug === episodeSlug);
@@ -47,13 +58,17 @@ function RoomView({
 }) {
   const navigate = useNavigate();
   const { data: detail } = useMovieDetail(movieSlug);
-  const { members, chat, playbackState, connected, sendChat, hostControls } = useWatchParty(code, name);
+  const { members, chat, playbackState, connected, sendChat, hostControls } =
+    useWatchParty(code, name);
 
   const playerRef = useRef<VideoPlayerHandle>(null);
   const applyingRef = useRef(false); // suppress echo when applying server state
   const [message, setMessage] = useState("");
 
-  const src = useMemo(() => findStream(detail?.movie, episodeSlug), [detail, episodeSlug]);
+  const src = useMemo(
+    () => findStream(detail?.movie, episodeSlug),
+    [detail, episodeSlug],
+  );
 
   // Apply the authoritative server playback state to the local video. The
   // applying flag stops the resulting play/pause/seeked events from being
@@ -81,7 +96,8 @@ function RoomView({
   const shareRoom = async () => {
     const url = window.location.href;
     try {
-      if (navigator.share) await navigator.share({ title: "Xem Chung XoPhim", url });
+      if (navigator.share)
+        await navigator.share({ title: "Xem Chung XoPhim", url });
       else {
         await navigator.clipboard.writeText(url);
         toast.success("Đã sao chép liên kết phòng");
@@ -109,9 +125,17 @@ function RoomView({
             {code}
           </span>
           <span
-            className={connected ? "flex items-center gap-1 text-xs text-sub" : "flex items-center gap-1 text-xs text-muted"}
+            className={
+              connected
+                ? "flex items-center gap-1 text-xs text-sub"
+                : "flex items-center gap-1 text-xs text-muted"
+            }
           >
-            {connected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+            {connected ? (
+              <Wifi className="h-4 w-4" />
+            ) : (
+              <WifiOff className="h-4 w-4" />
+            )}
             {connected ? "Đã kết nối" : "Đang kết nối..."}
           </span>
         </div>
@@ -122,7 +146,9 @@ function RoomView({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate({ to: "/xem/$slug", params: { slug: movieSlug } })}
+            onClick={() =>
+              navigate({ to: "/xem/$slug", params: { slug: movieSlug } })
+            }
           >
             <LogOut className="h-4 w-4" /> Rời Phòng
           </Button>
@@ -139,16 +165,28 @@ function RoomView({
                 src={src}
                 poster={detail?.movie.thumbUrl}
                 autoPlay={false}
-                onPlay={() => guard(() => hostControls.play(playerRef.current?.currentTime() ?? 0))}
-                onPause={() => guard(() => hostControls.pause(playerRef.current?.currentTime() ?? 0))}
+                onPlay={() =>
+                  guard(() =>
+                    hostControls.play(playerRef.current?.currentTime() ?? 0),
+                  )
+                }
+                onPause={() =>
+                  guard(() =>
+                    hostControls.pause(playerRef.current?.currentTime() ?? 0),
+                  )
+                }
                 onSeeked={(sec) => guard(() => hostControls.seek(sec))}
               />
             ) : (
-              <div className="grid h-full place-items-center text-muted">Đang tải phim...</div>
+              <div className="grid h-full place-items-center text-muted">
+                Đang tải phim...
+              </div>
             )}
           </div>
           {detail?.movie && (
-            <h2 className="text-lg font-medium text-white">{detail.movie.name}</h2>
+            <h2 className="text-lg font-medium text-white">
+              {detail.movie.name}
+            </h2>
           )}
           <p className="text-xs text-muted">
             Chủ phòng điều khiển phát/tạm dừng/tua cho tất cả mọi người.
@@ -159,7 +197,9 @@ function RoomView({
         <aside className="flex h-[70vh] flex-col rounded-lg bg-chrome">
           <div className="flex items-center gap-2 border-b border-slate/40 px-4 py-3">
             <Users className="h-4 w-4 text-gold" />
-            <span className="text-sm font-medium text-white">Thành Viên ({members.length})</span>
+            <span className="text-sm font-medium text-white">
+              Thành Viên ({members.length})
+            </span>
           </div>
           <div className="no-scrollbar flex gap-2 overflow-x-auto border-b border-slate/40 px-4 py-2">
             {members.map((m) => (
@@ -180,14 +220,19 @@ function RoomView({
               chat.map((c, i) => (
                 <div key={i} className="text-sm">
                   <span className="font-medium text-gold">{c.from}</span>{" "}
-                  <span className="text-[10px] text-muted">{timeAgo(c.at)}</span>
+                  <span className="text-[10px] text-muted">
+                    {timeAgo(c.at)}
+                  </span>
                   <p className="text-silver">{c.text}</p>
                 </div>
               ))
             )}
           </div>
 
-          <form onSubmit={submitChat} className="flex gap-2 border-t border-slate/40 p-3">
+          <form
+            onSubmit={submitChat}
+            className="flex gap-2 border-t border-slate/40 p-3"
+          >
             <input
               value={message}
               onChange={(e) => setMessage(e.target.value)}

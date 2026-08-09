@@ -34,6 +34,8 @@ interface MovieCardProps {
   /** When set, the card links straight to this episode (?tap=) — used by
       "Xem Tiếp" so a click resumes the exact episode + timeline. */
   episodeSlug?: string;
+  /** Short resume metadata shown on history / continue-watching cards. */
+  resumeLabel?: string;
 }
 
 const HOVER_OPEN_DELAY = 180;
@@ -42,7 +44,13 @@ const HOVER_CLOSE_DELAY = 120;
 // Sharp-cornered 2:3 poster. Whole card links straight to the player (instant
 // play). On hover an AniWatch-style info popover floats over the grid (portaled
 // to <body> so it escapes the rail's overflow clipping).
-export function MovieCard({ movie, progress, rank, episodeSlug }: MovieCardProps) {
+export function MovieCard({
+  movie,
+  progress,
+  rank,
+  episodeSlug,
+  resumeLabel,
+}: MovieCardProps) {
   const anchorRef = useRef<HTMLDivElement>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const openTimer = useRef<number | undefined>(undefined);
@@ -156,6 +164,9 @@ export function MovieCard({ movie, progress, rank, episodeSlug }: MovieCardProps
             {movie.year != null && (
               <p className="text-xs text-muted">{movie.year}</p>
             )}
+            {resumeLabel && (
+              <p className="truncate text-xs text-gold/90">{resumeLabel}</p>
+            )}
           </div>
         </div>
       </Link>
@@ -247,7 +258,7 @@ function HoverCard({
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
       style={{ position: "absolute", left, top, width: POP_W }}
-      className="z-[60] origin-top-left animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 slide-in-from-left-1 overflow-hidden rounded-xl bg-white/10 shadow-2xl ring-1 ring-white/20 backdrop-blur-2xl duration-200 ease-out"
+      className="z-[60] origin-top-left animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 slide-in-from-left-1 overflow-hidden rounded-xl bg-white/10 shadow-2xl ring-1 ring-white/20 backdrop-blur-2xl duration-200 ease-out min-w-[300px] max-w-[300px] lg:min-w-[400px]"
     >
       {/* backdrop: trailer if available, else poster + play */}
       <div className="relative aspect-video overflow-hidden bg-black">

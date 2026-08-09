@@ -35,6 +35,17 @@ export const userStateApi = {
     return res.data;
   },
 
+  saveProgressKeepalive: (payload: SaveProgressPayload): void => {
+    const baseURL = import.meta.env.VITE_API_BASE_URL ?? "/v1";
+    fetch(`${baseURL}/me/progress`, {
+      method: "PUT",
+      credentials: "include",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  },
+
   deleteHistory: async (slug: string): Promise<void> => {
     await api.delete(`/me/history/${slug}`);
   },

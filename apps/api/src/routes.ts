@@ -9,6 +9,7 @@ import { registerUserStateRoutes } from "./user-state/routes.js";
 import { registerCommunityRoutes } from "./community/routes.js";
 import { registerCollectionsRoutes } from "./collections/routes.js";
 import { registerRoomsRoutes } from "./rooms/routes.js";
+import { registerPlaylistRoutes } from "./playlist/routes.js";
 
 // All routes mount under /v1 (see app.ts). Feature modules register here.
 export const registerRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -21,6 +22,7 @@ export const registerRoutes: FastifyPluginAsyncZod = async (app) => {
   await app.register(registerCommunityRoutes);
   await app.register(registerCollectionsRoutes, { prefix: "/collections" });
   await app.register(registerRoomsRoutes, { prefix: "/rooms" });
+  await app.register(registerPlaylistRoutes, { prefix: "/playlist" });
 
   app.get(
     "/health",

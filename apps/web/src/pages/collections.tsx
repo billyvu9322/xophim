@@ -32,7 +32,9 @@ function CollectionCard({ c }: { c: Collection }) {
 
         {/* Overlaid content — bottom-left */}
         <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
-          <p className="text-lg font-semibold text-white leading-snug line-clamp-2">{c.title}</p>
+          <p className="text-lg font-semibold text-white leading-snug line-clamp-2">
+            {c.title}
+          </p>
           <span
             className={cn(
               "mt-1.5 inline-flex items-center gap-1 text-sm text-gold",

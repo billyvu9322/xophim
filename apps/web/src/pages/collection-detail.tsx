@@ -47,7 +47,9 @@ export function CollectionDetailPage() {
 
             {/* Title + description overlay */}
             <div className="relative z-10 flex h-full flex-col justify-end p-4 sm:p-6 md:p-8">
-              <h1 className="text-3xl font-bold text-white leading-tight">{data.title}</h1>
+              <h1 className="text-3xl font-bold text-white leading-tight">
+                {data.title}
+              </h1>
               {data.description ? (
                 <p className="mt-2 max-w-2xl text-silver text-sm sm:text-base leading-relaxed line-clamp-3">
                   {data.description}

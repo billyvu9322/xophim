@@ -5,9 +5,11 @@ import { MovieGridSkeleton } from "@/components/ui/skeletons";
 import { useInfiniteSearch } from "@/hooks/catalog";
 
 export function SearchPage() {
-  const { keyword = "" } = useRouterSearch({ from: "/search" }) as { keyword?: string };
+  const { keyword = "" } = useRouterSearch({ from: "/search" }) as {
+    keyword?: string;
+  };
 
-  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } =
+  const { data, isLoading, isError, hasNextPage, fetchNextPage } =
     useInfiniteSearch(keyword, {});
   const movies = data?.pages.flatMap((pageData) => pageData.items) ?? [];
 
@@ -23,8 +25,7 @@ export function SearchPage() {
     <div className="mx-auto max-w-[1600px] px-4 py-6 space-y-6">
       {/* Heading */}
       <h1 className="text-2xl font-semibold text-white">
-        Kết quả cho:{" "}
-        <span className="text-gold">{keyword}</span>
+        Kết quả cho: <span className="text-gold">{keyword}</span>
       </h1>
 
       {/* Content */}
@@ -38,7 +39,6 @@ export function SearchPage() {
         <InfiniteMovieGrid
           movies={movies}
           hasMore={Boolean(hasNextPage)}
-          isLoadingMore={isFetchingNextPage}
           loadMore={() => void fetchNextPage()}
         />
       )}

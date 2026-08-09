@@ -18,7 +18,8 @@ import { cn } from "@/lib/utils";
 // flat list separated by hairline dividers, likes, one level of replies.
 export function CommentBlock({ slug }: { slug: string }) {
   const { data: user } = useAuth();
-  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useComments(slug);
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useComments(slug);
   const post = usePostComment(slug);
   const [body, setBody] = useState("");
 
@@ -32,56 +33,76 @@ export function CommentBlock({ slug }: { slug: string }) {
   };
 
   return (
-    <section className="space-y-5">
-      <h2 className="text-xl font-semibold text-white">Bình Luận {total > 0 && `(${total})`}</h2>
+    <div className="mt-10 mr-2">
+      <section className="space-y-5">
+        <h2 className="text-xl font-semibold text-white">
+          Bình Luận {total > 0 && `(${total})`}
+        </h2>
 
-      {user ? (
-        <div className="flex gap-3">
-          <Avatar />
-          <div className="flex-1 space-y-2">
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Viết bình luận..."
-              rows={3}
-              className="w-full resize-none rounded-md bg-elevated p-3 text-sm text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
-            />
-            <div className="flex justify-end">
-              <Button size="sm" onClick={submit} disabled={post.isPending || !body.trim()}>
-                Gửi
-              </Button>
+        {user ? (
+          <div className="flex gap-3">
+            <Avatar />
+            <div className="flex-1 space-y-2">
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Viết bình luận..."
+                rows={3}
+                className="w-full resize-none rounded-md bg-elevated p-3 text-sm text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold max-w-[calc(100vw-4rem)]"
+              />
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={submit}
+                  disabled={post.isPending || !body.trim()}
+                >
+                  Gửi
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <p className="rounded-md bg-chrome p-4 text-sm text-muted">
-          <Link to="/dang-nhap" className="text-gold hover:underline">
-            Đăng nhập
-          </Link>{" "}
-          để bình luận
-        </p>
-      )}
+        ) : (
+          <p className="rounded-md bg-chrome p-4 text-sm text-muted">
+            <Link to="/dang-nhap" className="text-gold hover:underline">
+              Đăng nhập
+            </Link>{" "}
+            để bình luận
+          </p>
+        )}
 
-      {isLoading ? (
-        <LoadingState />
-      ) : comments.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted">Hãy là người đầu tiên bình luận</p>
-      ) : (
-        <ul className="divide-y divide-slate/40">
-          {comments.map((c) => (
-            <CommentRow key={c.id} slug={slug} comment={c} currentUserId={user?.id ?? null} />
-          ))}
-        </ul>
-      )}
+        {isLoading ? (
+          <LoadingState />
+        ) : comments.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted">
+            Hãy là người đầu tiên bình luận
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate/40">
+            {comments.map((c) => (
+              <CommentRow
+                key={c.id}
+                slug={slug}
+                comment={c}
+                currentUserId={user?.id ?? null}
+              />
+            ))}
+          </ul>
+        )}
 
-      {hasNextPage && (
-        <div className="flex justify-center">
-          <Button variant="secondary" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-            {isFetchingNextPage ? "Đang tải..." : "Xem thêm bình luận"}
-          </Button>
-        </div>
-      )}
-    </section>
+        {hasNextPage && (
+          <div className="flex justify-center">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? "Đang tải..." : "Xem thêm bình luận"}
+            </Button>
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
 
@@ -140,7 +161,11 @@ function CommentRow({
             placeholder="Trả lời..."
             className="h-9 flex-1 rounded-md bg-elevated px-3 text-sm text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
           />
-          <Button size="sm" onClick={submitReply} disabled={post.isPending || !replyBody.trim()}>
+          <Button
+            size="sm"
+            onClick={submitReply}
+            disabled={post.isPending || !replyBody.trim()}
+          >
             Gửi
           </Button>
         </div>
@@ -184,18 +209,29 @@ function CommentBody({
         <div className="flex items-center gap-2 text-sm">
           <span className="font-medium text-white">Thành viên</span>
           <span className="text-xs text-muted">{timeAgo(item.createdAt)}</span>
-          {item.editedAt && <span className="text-xs text-muted">(đã sửa)</span>}
+          {item.editedAt && (
+            <span className="text-xs text-muted">(đã sửa)</span>
+          )}
         </div>
-        <p className={cn("mt-1 text-sm", item.isDeleted ? "italic text-muted" : "text-silver")}>
+        <p
+          className={cn(
+            "mt-1 text-sm",
+            item.isDeleted ? "italic text-muted" : "text-silver",
+          )}
+        >
           {item.isDeleted ? "[Bình luận đã bị xóa]" : item.body}
         </p>
         {!item.isDeleted && (
           <div className="mt-2 flex items-center gap-4 text-xs text-muted">
             <button
               onClick={onLike}
-              className={cn("flex items-center gap-1 hover:text-gold", item.liked && "text-gold")}
+              className={cn(
+                "flex items-center gap-1 hover:text-gold",
+                item.liked && "text-gold",
+              )}
             >
-              <Heart className={cn("h-4 w-4", item.liked && "fill-gold")} /> {item.likeCount}
+              <Heart className={cn("h-4 w-4", item.liked && "fill-gold")} />{" "}
+              {item.likeCount}
             </button>
             {onReply && (
               <button onClick={onReply} className="hover:text-gold">
@@ -203,7 +239,10 @@ function CommentBody({
               </button>
             )}
             {canDelete && (
-              <button onClick={onDelete} className="flex items-center gap-1 hover:text-[#FC887B]">
+              <button
+                onClick={onDelete}
+                className="flex items-center gap-1 hover:text-[#FC887B]"
+              >
                 <Trash2 className="h-4 w-4" /> Xóa
               </button>
             )}

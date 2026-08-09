@@ -2,14 +2,15 @@ import { useHistory } from "@/hooks/user-state";
 import { MovieCard } from "@/components/MovieCard";
 import { ErrorState, EmptyState } from "@/components/ui/states";
 import { MovieGridSkeleton } from "@/components/ui/skeletons";
-import { timeAgo } from "@/lib/format";
+import { formatDuration, timeAgo } from "@/lib/format";
 
 export function HistoryPage() {
   const { items, isLoading, error } = useHistory();
 
   // Sort descending by updated_at (server already returns desc, but guard client-side too).
   const sorted = [...items].sort(
-    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+    (a, b) =>
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
   );
 
   return (
@@ -40,8 +41,12 @@ export function HistoryPage() {
                     year: it.movie_snapshot.year,
                   }}
                   progress={progress}
+                  episodeSlug={it.episode_slug}
+                  resumeLabel={`${resumeEpisodeLabel(it.episode_slug)} • ${formatDuration(it.position_sec)}`}
                 />
-                <p className="mt-1 text-xs text-muted">{timeAgo(it.updated_at)}</p>
+                <p className="mt-1 text-xs text-muted">
+                  {timeAgo(it.updated_at)}
+                </p>
               </div>
             );
           })}
@@ -49,4 +54,10 @@ export function HistoryPage() {
       )}
     </div>
   );
+}
+
+function resumeEpisodeLabel(episodeSlug: string): string {
+  if (episodeSlug === "full") return "Full";
+  const episode = episodeSlug.match(/(?:tap-|episode-)?(\d+)$/i)?.[1];
+  return episode ? `Tập ${episode}` : episodeSlug;
 }

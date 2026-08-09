@@ -51,12 +51,12 @@ export function HomePage() {
       year: h.movie_snapshot.year,
       episodeSlug: h.episode_slug,
       progress: h.duration_sec ? h.position_sec / h.duration_sec : 0,
+      // resumeLabel: `${resumeEpisodeLabel(h.episode_slug)} • ${formatDuration(h.position_sec)}`,
     }));
 
   return (
     <div>
       <Spotlight movies={spotlight} />
-
       <div className="mx-auto max-w-[1600px] px-4 py-6">
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* main column */}
@@ -74,6 +74,7 @@ export function HomePage() {
                         movie={m}
                         progress={m.progress}
                         episodeSlug={m.episodeSlug}
+                        // resumeLabel={m.resumeLabel}
                       />
                       <button
                         type="button"
@@ -94,7 +95,7 @@ export function HomePage() {
               </section>
             )}
 
-            <MovieRail title="Nổi Bật" movies={trending} ranked />
+            <MovieRail title="Hiện đang thịnh hành" movies={trending} ranked />
             <MovieRail
               title="Phim Mới Cập Nhật"
               movies={data.latest}
@@ -162,6 +163,12 @@ export function HomePage() {
     </div>
   );
 }
+
+// function resumeEpisodeLabel(episodeSlug: string): string {
+//   if (episodeSlug === "full") return "Full";
+//   const episode = episodeSlug.match(/(?:tap-|episode-)?(\d+)$/i)?.[1];
+//   return episode ? `Tập ${episode}` : episodeSlug;
+// }
 
 // ---------------------------------------------------------------------------
 // Spotlight — auto-rotating hero carousel over a backdrop with a gradient scrim.

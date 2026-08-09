@@ -8,7 +8,7 @@ export function Skeleton({ className }: { className?: string }) {
 }
 
 // A single poster cell (2:3) with a title line — matches MovieCard.
-function PosterCardSkeleton() {
+export function PosterCardSkeleton() {
   return (
     <div className="space-y-2">
       <Skeleton className="aspect-[2/3] w-full rounded" />

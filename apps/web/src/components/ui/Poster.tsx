@@ -1,5 +1,5 @@
 import { Clapperboard } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface PosterProps {
@@ -18,12 +18,53 @@ interface PosterProps {
 // the browser's ugly default. Fills its parent (parent controls aspect/rounding).
 export function Poster({ src, alt, label, imgClassName, compact }: PosterProps) {
   const [errored, setErrored] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const showFallback = errored || !src;
+
+  useEffect(() => {
+    setErrored(false);
+    setIsVisible(false);
+  }, [src]);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node || !src) return;
+
+    if (!("IntersectionObserver" in window)) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        setIsVisible(true);
+        observer.disconnect();
+      },
+      { rootMargin: "600px 0px" },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [src]);
+
+  if (!showFallback && !isVisible) {
+    return (
+      <div
+        ref={rootRef}
+        className="h-full w-full animate-pulse bg-gradient-to-br from-chrome via-elevated to-chrome"
+      />
+    );
+  }
 
   if (showFallback) {
     const text = label ?? alt;
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-chrome via-elevated to-chrome p-2 text-center">
+      <div
+        ref={rootRef}
+        className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-chrome via-elevated to-chrome p-2 text-center"
+      >
         <Clapperboard className={cn("text-gold/40", compact ? "h-4 w-4" : "h-8 w-8")} />
         {!compact && text && (
           <span className="line-clamp-2 px-1 text-xs font-medium text-muted">{text}</span>
@@ -33,12 +74,15 @@ export function Poster({ src, alt, label, imgClassName, compact }: PosterProps) 
   }
 
   return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      onError={() => setErrored(true)}
-      className={imgClassName ?? "h-full w-full object-cover"}
-    />
+    <div ref={rootRef} className="h-full w-full">
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onError={() => setErrored(true)}
+        className={imgClassName ?? "h-full w-full object-cover"}
+      />
+    </div>
   );
 }

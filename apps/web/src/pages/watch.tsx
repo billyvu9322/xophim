@@ -42,6 +42,8 @@ import type {
   ServerItem,
 } from "@/lib/catalog-types";
 import { langBadges, stripHtml, typeLabel } from "@/lib/format";
+import { userStateApi } from "@/lib/user-state-api";
+import type { SaveProgressPayload } from "@/lib/user-state-types";
 import { cn } from "@/lib/utils";
 
 // Track classification from a KKPhim server name.
@@ -61,6 +63,29 @@ const TRACK_TEXT: Record<"sub" | "dub" | "long", string> = {
   dub: "text-dub",
   long: "text-silver",
 };
+
+const WATCH_PREF_KEYS = {
+  theater: "xophim.watch.theater",
+  autoPlay: "xophim.watch.autoPlay",
+  autoNext: "xophim.watch.autoNext",
+  skipIntro: "xophim.watch.skipIntro",
+} as const;
+
+function readStoredBoolean(key: string, fallback: boolean): boolean {
+  if (typeof window === "undefined") return fallback;
+  const value = window.localStorage.getItem(key);
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return fallback;
+}
+
+function useStoredBoolean(key: string, fallback: boolean) {
+  const [value, setValue] = useState(() => readStoredBoolean(key, fallback));
+  useEffect(() => {
+    window.localStorage.setItem(key, String(value));
+  }, [key, value]);
+  return [value, setValue] as const;
+}
 
 // "1" → "Tập 1"; leave non-numeric names ("Full", "OVA") as-is.
 function epLabel(name: string): string {
@@ -106,7 +131,9 @@ function WatchView({
   const items = currentServer?.items ?? [];
   const firstEp = items[0]?.slug ?? "";
   const [episodeSlug, setEpisodeSlug] = useState(() =>
-    search.tap && items.some((e) => e.slug === search.tap) ? search.tap : firstEp,
+    search.tap && items.some((e) => e.slug === search.tap)
+      ? search.tap
+      : firstEp,
   );
 
   const curIdx = items.findIndex((e) => e.slug === episodeSlug);
@@ -132,7 +159,10 @@ function WatchView({
   const resume = useMemo(() => {
     const rows = history
       .filter((h) => h.movie_slug === slug)
-      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+      );
     return rows[0];
   }, [history, slug]);
 
@@ -157,10 +187,22 @@ function WatchView({
     return row?.position_sec ?? 0;
   }, [history, slug, currentEpisode?.slug]);
 
-  const [theater, setTheater] = useState(false);
-  const [autoPlay, setAutoPlay] = useState(true);
-  const [autoNext, setAutoNext] = useState(true);
-  const [skipIntro, setSkipIntro] = useState(false);
+  const [theater, setTheater] = useStoredBoolean(
+    WATCH_PREF_KEYS.theater,
+    false,
+  );
+  const [autoPlay, setAutoPlay] = useStoredBoolean(
+    WATCH_PREF_KEYS.autoPlay,
+    false,
+  );
+  const [autoNext, setAutoNext] = useStoredBoolean(
+    WATCH_PREF_KEYS.autoNext,
+    true,
+  );
+  const [skipIntro, setSkipIntro] = useStoredBoolean(
+    WATCH_PREF_KEYS.skipIntro,
+    false,
+  );
   const [reportOpen, setReportOpen] = useState(false);
 
   const { items: watchlist } = useWatchlist();
@@ -170,6 +212,7 @@ function WatchView({
   const saveProgress = useSaveProgress();
   const createRoom = useCreateRoom();
   const lastSavedRef = useRef<number | null>(null);
+  const latestProgressRef = useRef<SaveProgressPayload | null>(null);
   const playerWrapRef = useRef<HTMLDivElement>(null);
 
   const snapshot = {
@@ -208,11 +251,16 @@ function WatchView({
     if (next) setEpisodeSlug(next.slug);
   };
 
+  const saveCurrentProgress = (payload: SaveProgressPayload, force = false) => {
+    latestProgressRef.current = payload;
+    if (!force && shouldThrottleProgressSave(lastSavedRef.current)) return;
+    lastSavedRef.current = Date.now();
+    saveProgress.save(payload);
+  };
+
   const onTimeUpdate = (positionSec: number, durationSec: number) => {
     if (!currentEpisode) return;
-    if (shouldThrottleProgressSave(lastSavedRef.current)) return;
-    lastSavedRef.current = Date.now();
-    saveProgress.save({
+    saveCurrentProgress({
       slug,
       episodeSlug: currentEpisode.slug,
       server: currentServer?.serverName ?? "",
@@ -221,6 +269,29 @@ function WatchView({
       snapshot,
     });
   };
+
+  useEffect(() => {
+    const flushProgress = () => {
+      const payload = latestProgressRef.current;
+      if (!payload) return;
+      if (user) userStateApi.saveProgressKeepalive(payload);
+      else saveCurrentProgress(payload, true);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flushProgress();
+    };
+
+    window.addEventListener("pagehide", flushProgress);
+    window.addEventListener("beforeunload", flushProgress);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", flushProgress);
+      window.removeEventListener("beforeunload", flushProgress);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [user, saveProgress]);
 
   const onShare = async () => {
     const url = window.location.href;
@@ -290,160 +361,183 @@ function WatchView({
           {/* joined block: Danh Sách Tập + player + controls (frosted over backdrop).
               backdrop-blur creates a stacking context, so lift the whole block
               above the lights-off overlay (z-30) when theater mode is on. */}
-          <div
-            className={cn(
-              "overflow-hidden rounded-lg bg-chrome/70 ring-1 ring-white/5 backdrop-blur-xl",
-              theater && "relative z-40",
-            )}
-          >
-            <div className="flex flex-col lg:flex-row">
-              {/* episodes — flush against the player. On mobile the player comes
-                  first (order) so it isn't buried under a long episode list. */}
-              <div className="order-2 border-t border-slate/50 lg:relative lg:order-1 lg:w-[240px] lg:shrink-0 lg:overflow-hidden lg:border-t-0 lg:border-r">
-                <EpisodeSidebar
-                  items={items}
-                  currentSlug={currentEpisode?.slug}
-                  onSelect={setEpisodeSlug}
-                />
-              </div>
-
-              {/* player + controls */}
-              <div className="order-1 min-w-0 flex-1 lg:order-2">
-                <div ref={playerWrapRef} className={cn("relative", theater && "z-40")}>
-                  <div className="aspect-video w-full overflow-hidden bg-black">
-                {currentEpisode?.linkM3u8 ? (
-                  <VideoPlayer
-                    key={currentEpisode.slug}
-                    src={currentEpisode.linkM3u8}
-                    poster={movie.thumbUrl || movie.posterUrl}
-                    autoPlay={autoPlay}
-                    startAt={startAt}
-                    onTimeUpdate={onTimeUpdate}
-                    onEnded={() => autoNext && goNext()}
-                  />
-                ) : (
-                  <div className="grid h-full place-items-center text-muted">
-                    Không có nguồn phát
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* toolbar */}
+          <div className="overflow-hidden">
             <div
               className={cn(
-                "flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-slate/40 px-3 py-2.5 text-sm",
+                " rounded-lg bg-chrome/70 ring-1 ring-white/5 backdrop-blur-xl",
                 theater && "relative z-40",
               )}
             >
-              <ToolBtn
-                icon={<Maximize className="h-4 w-4" />}
-                label="Mở Rộng"
-                onClick={expand}
-              />
-              <ToolToggle
-                className="hidden lg:flex"
-                icon={
-                  theater ? (
-                    <Lightbulb className="h-4 w-4" />
-                  ) : (
-                    <LightbulbOff className="h-4 w-4" />
-                  )
-                }
-                label="Đèn"
-                on={!theater}
-                onLabel="Bật"
-                offLabel="Tắt"
-                onClick={() => setTheater((v) => !v)}
-              />
-              <ToolToggle
-                className="hidden lg:flex"
-                icon={<Play className="h-4 w-4" />}
-                label="Tự Động Phát"
-                on={autoPlay}
-                onClick={() => setAutoPlay((v) => !v)}
-              />
-              <ToolToggle
-                className="hidden lg:flex"
-                icon={<Repeat className="h-4 w-4" />}
-                label="Chuyển Tập"
-                on={autoNext}
-                onClick={() => setAutoNext((v) => !v)}
-              />
-              <ToolToggle
-                className="hidden lg:flex"
-                icon={<FastForward className="h-4 w-4" />}
-                label="Bỏ Qua Intro"
-                on={skipIntro}
-                onClick={() => setSkipIntro((v) => !v)}
-              />
+              <div className="flex flex-col lg:flex-row pb-3">
+                {/* episodes — flush against the player. On mobile the player comes
+                  first (order) so it isn't buried under a long episode list. */}
+                <div className="order-2 border-t border-slate/50 lg:relative lg:order-1 lg:w-[240px] lg:shrink-0 lg:overflow-hidden lg:border-t-0 lg:border-r">
+                  <EpisodeSidebar
+                    items={items}
+                    currentSlug={currentEpisode?.slug}
+                    onSelect={setEpisodeSlug}
+                  />
+                </div>
 
-              <div className="ml-auto flex flex-wrap items-center gap-2">
-                <ToolBtn
-                  icon={<SkipBack className="h-4 w-4" />}
-                  label="Tập Trước"
-                  disabled={curIdx <= 0}
-                  onClick={goPrev}
-                />
-                <ToolBtn
-                  icon={<SkipForward className="h-4 w-4" />}
-                  label="Tập Sau"
-                  disabled={curIdx < 0 || curIdx >= items.length - 1}
-                  onClick={goNext}
-                />
-                <ToolBtn
-                  icon={
-                    <Heart
-                      className={cn(
-                        "h-4 w-4",
-                        inWatchlist && "fill-gold text-gold",
+                {/* player + controls */}
+                <div className="order-1 min-w-0 flex-1 lg:order-2">
+                  <div
+                    ref={playerWrapRef}
+                    className={cn("relative", theater && "z-40")}
+                  >
+                    <div className="aspect-video w-full overflow-hidden bg-black">
+                      {currentEpisode?.linkM3u8 ? (
+                        <VideoPlayer
+                          key={currentEpisode.slug}
+                          src={currentEpisode.linkM3u8}
+                          poster={movie.thumbUrl || movie.posterUrl}
+                          autoPlay={autoPlay}
+                          startAt={startAt}
+                          onTimeUpdate={onTimeUpdate}
+                          onEnded={() => autoNext && goNext()}
+                        />
+                      ) : (
+                        <div className="grid h-full place-items-center text-muted">
+                          Không có nguồn phát
+                        </div>
                       )}
-                    />
-                  }
-                  label="Thêm Vào DS"
-                  active={inWatchlist}
-                  onClick={() =>
-                    toggleWatchlist.toggle(slug, snapshot, inWatchlist)
-                  }
-                />
-                <button
-                  onClick={startWatchParty}
-                  className="hidden items-center gap-1.5 rounded-pill bg-gold px-3 py-1.5 text-sm font-medium text-[#111] hover:brightness-105 lg:flex"
-                >
-                  <Users className="h-4 w-4" /> Xem Chung
-                </button>
-                <IconBtn label="Chia Sẻ" onClick={onShare}>
-                  <Share2 className="h-4 w-4" />
-                </IconBtn>
-                <IconBtn
-                  label="Báo Lỗi"
-                  onClick={() => setReportOpen(true)}
-                  className="hidden lg:grid"
-                >
-                  <Flag className="h-4 w-4" />
-                </IconBtn>
-              </div>
-            </div>
-
-                {/* server row: gold callout (left) + server selector (right) */}
-                <div className="flex flex-col gap-3 p-3 lg:flex-row lg:items-stretch">
-                  <div className="flex items-center gap-1 rounded-md bg-gold/90 px-4 py-3 text-xs font-medium leading-snug text-[#111] lg:w-56 lg:shrink-0">
-                    <span>
-                      Bạn đang xem{" "}
-                      <b>{currentEpisode ? epLabel(currentEpisode.name) : "Tập 1"}</b>. Nếu lỗi, chọn
-                      server khác bên phải.
-                    </span>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <ServerSelector
-                      groups={groups}
-                      activeIdx={serverIdx}
-                      onSelect={selectServer}
+
+                  {/* toolbar */}
+                  <div
+                    className={cn(
+                      "flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-slate/40 px-3 py-2.5 text-sm",
+                      theater && "relative z-40",
+                    )}
+                  >
+                    <ToolBtn
+                      icon={<Maximize className="h-4 w-4" />}
+                      label="Mở Rộng"
+                      onClick={expand}
                     />
+                    <ToolToggle
+                      className="hidden lg:flex"
+                      icon={
+                        theater ? (
+                          <Lightbulb className="h-4 w-4" />
+                        ) : (
+                          <LightbulbOff className="h-4 w-4" />
+                        )
+                      }
+                      label="Đèn"
+                      on={!theater}
+                      onLabel="Bật"
+                      offLabel="Tắt"
+                      onClick={() => setTheater((v) => !v)}
+                    />
+                    <ToolToggle
+                      className="hidden lg:flex"
+                      icon={<Play className="h-4 w-4" />}
+                      label="Tự Động Phát"
+                      on={autoPlay}
+                      onClick={() => setAutoPlay((v) => !v)}
+                    />
+                    <ToolToggle
+                      className="hidden lg:flex"
+                      icon={<Repeat className="h-4 w-4" />}
+                      label="Chuyển Tập"
+                      on={autoNext}
+                      onClick={() => setAutoNext((v) => !v)}
+                    />
+                    <ToolToggle
+                      className="hidden lg:flex"
+                      icon={<FastForward className="h-4 w-4" />}
+                      label="Bỏ Giới Thiệu"
+                      on={skipIntro}
+                      onClick={() => setSkipIntro((v) => !v)}
+                    />
+
+                    <div className="ml-auto flex flex-wrap items-center gap-2">
+                      <div className="grid h-8 w-8 place-items-center rounded-full text-silver hover:bg-elevated hover:text-white">
+                        <ToolBtn
+                          icon={<SkipBack className="h-4 w-4" />}
+                          label="Tập Trước"
+                          disabledShowLabel
+                          disabled={curIdx <= 0}
+                          onClick={goPrev}
+                        />
+                      </div>
+                      <div className="grid h-8 w-8 place-items-center rounded-full text-silver hover:bg-elevated hover:text-white">
+                        <ToolBtn
+                          icon={<SkipForward className="h-4 w-4" />}
+                          label="Tập Sau"
+                          disabledShowLabel
+                          disabled={curIdx < 0 || curIdx >= items.length - 1}
+                          onClick={goNext}
+                        />
+                      </div>
+
+                      <div className="grid h-8 w-8 place-items-center rounded-full text-silver hover:bg-elevated hover:text-white">
+                        <ToolBtn
+                          icon={
+                            <Heart
+                              className={cn(
+                                "h-4 w-4",
+                                inWatchlist && "fill-gold text-gold",
+                              )}
+                            />
+                          }
+                          disabledShowLabel
+                          label="Thêm Vào Danh Sách Xem"
+                          active={inWatchlist}
+                          onClick={() =>
+                            toggleWatchlist.toggle(slug, snapshot, inWatchlist)
+                          }
+                        />
+                      </div>
+                      <IconBtn label="Chia Sẻ" onClick={onShare}>
+                        <Share2 className="h-4 w-4" />
+                      </IconBtn>
+                      <IconBtn
+                        label="Báo Lỗi"
+                        onClick={() => setReportOpen(true)}
+                        className="hidden lg:grid"
+                      >
+                        <Flag className="h-4 w-4" />
+                      </IconBtn>
+                      <button
+                        title="Xem chung"
+                        onClick={startWatchParty}
+                        className="hidden items-center gap-1.5 rounded-pill bg-gold px-3 py-1.5 text-sm font-medium text-[#111] hover:brightness-105 lg:flex"
+                      >
+                        <Users className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* server row: gold callout (left) + server selector (right) */}
+                  <div className="flex flex-col gap-3 p-3 lg:flex-row lg:items-stretch">
+                    <div className="flex items-center gap-1 rounded-md bg-gold/90 px-4 py-3 text-xs font-medium leading-snug text-[#111] lg:w-56 lg:shrink-0">
+                      <span>
+                        Bạn đang xem{" "}
+                        <b>
+                          {currentEpisode
+                            ? epLabel(currentEpisode.name)
+                            : "Tập 1"}
+                        </b>
+                        . Nếu lỗi, chọn server khác bên phải.
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <ServerSelector
+                        groups={groups}
+                        activeIdx={serverIdx}
+                        onSelect={selectServer}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* comments (unchanged) */}
+            <CommentBlock slug={slug} />
           </div>
 
           {/* col 3 — movie info (beside the player) */}
@@ -536,11 +630,6 @@ function WatchView({
           </aside>
         </div>
 
-        {/* comments (unchanged) */}
-        <div className="mt-10">
-          <CommentBlock slug={slug} />
-        </div>
-
         {/* similar (unchanged) */}
         {similar.length > 0 && (
           <div className="mt-10">
@@ -630,6 +719,7 @@ function ToolBtn({
   disabled,
   onClick,
   className,
+  disabledShowLabel,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -637,11 +727,13 @@ function ToolBtn({
   disabled?: boolean;
   onClick: () => void;
   className?: string;
+  disabledShowLabel?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
+      title={label}
       className={cn(
         "flex items-center gap-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40",
         active ? "text-gold" : "text-silver hover:text-gold",
@@ -649,7 +741,7 @@ function ToolBtn({
       )}
     >
       {icon}
-      <span className="hidden sm:inline">{label}</span>
+      {!disabledShowLabel && <span className="hidden sm:inline">{label}</span>}
     </button>
   );
 }
@@ -674,7 +766,10 @@ function ToolToggle({
   return (
     <button
       onClick={onClick}
-      className={cn("flex items-center gap-1.5 text-silver hover:text-white", className)}
+      className={cn(
+        "flex items-center gap-1.5 text-silver hover:text-white",
+        className,
+      )}
     >
       {icon}
       <span className="hidden sm:inline">{label}:</span>
@@ -721,7 +816,7 @@ function Synopsis({ text }: { text: string }) {
       <p
         className={cn(
           "text-sm leading-relaxed text-silver",
-          long && !open && "line-clamp-3",
+          long && !open && "line-clamp-6",
         )}
       >
         {text}

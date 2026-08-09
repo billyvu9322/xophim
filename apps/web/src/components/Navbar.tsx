@@ -1,10 +1,18 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, LogOut, Menu, Search, User as UserIcon, X } from "lucide-react";
+import {
+  ChevronDown,
+  LogOut,
+  Menu,
+  Search,
+  User as UserIcon,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "./ui/Logo";
 import { useAuth, useLogout } from "@/hooks/auth";
 import { useSearch as useCatalogSearch } from "@/hooks/catalog";
 import type { Movie } from "@/lib/catalog-types";
+import { DotLoading } from "./ui/DotLoading";
 
 // Explicit Links (not a mapped array) so TanStack Router's typed `to`/`params`
 // stay statically checked. `linkClass` styles the active state via [&.active].
@@ -14,13 +22,28 @@ const linkClass =
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
-      <Link to="/" activeOptions={{ exact: true }} className={linkClass} onClick={onNavigate}>
+      <Link
+        to="/"
+        activeOptions={{ exact: true }}
+        className={linkClass}
+        onClick={onNavigate}
+      >
         Trang Chủ
       </Link>
-      <Link to="/list/$type" params={{ type: "phim-le" }} className={linkClass} onClick={onNavigate}>
+      <Link
+        to="/list/$type"
+        params={{ type: "phim-le" }}
+        className={linkClass}
+        onClick={onNavigate}
+      >
         Phim Lẻ
       </Link>
-      <Link to="/list/$type" params={{ type: "phim-bo" }} className={linkClass} onClick={onNavigate}>
+      <Link
+        to="/list/$type"
+        params={{ type: "phim-bo" }}
+        className={linkClass}
+        onClick={onNavigate}
+      >
         Phim Bộ
       </Link>
       <Link
@@ -55,7 +78,8 @@ export function Navbar() {
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (acctRef.current && !acctRef.current.contains(e.target as Node)) setAcctOpen(false);
+      if (acctRef.current && !acctRef.current.contains(e.target as Node))
+        setAcctOpen(false);
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -64,7 +88,11 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate/40 bg-chrome/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-4 px-4">
-        <button className="lg:hidden" onClick={() => setMenuOpen((v) => !v)} aria-label="Menu">
+        <button
+          className="lg:hidden"
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-label="Menu"
+        >
           {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
@@ -154,17 +182,24 @@ function SearchBox({ onNavigate }: { onNavigate?: () => void }) {
   const [open, setOpen] = useState(false);
   const trimmedKeyword = keyword.trim();
   const queryKeyword = debouncedKeyword.length >= 2 ? debouncedKeyword : "";
-  const { data, isFetching, isError } = useCatalogSearch(queryKeyword, { page: 1, limit: 5 });
+  const { data, isFetching, isError } = useCatalogSearch(queryKeyword, {
+    page: 1,
+    limit: 5,
+  });
   const results = data?.items ?? [];
 
   useEffect(() => {
-    const id = window.setTimeout(() => setDebouncedKeyword(trimmedKeyword), 250);
+    const id = window.setTimeout(
+      () => setDebouncedKeyword(trimmedKeyword),
+      250,
+    );
     return () => window.clearTimeout(id);
   }, [trimmedKeyword]);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+      if (rootRef.current && !rootRef.current.contains(event.target as Node))
+        setOpen(false);
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -212,20 +247,18 @@ function SearchBox({ onNavigate }: { onNavigate?: () => void }) {
 
       {showDropdown && (
         <div className="absolute -left-[15px] -right-[15px] top-[50px] z-50 bg-[#2d2b44] text-white shadow-[0_20px_20px_rgba(0,0,0,0.3)]">
-          {isFetching && (
-            <div className="flex h-20 items-center justify-center gap-1.5 bg-[#2d2b44]">
-              <span className="h-2 w-2 animate-bounce rounded-full bg-gold [animation-delay:-0.2s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-gold [animation-delay:-0.1s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-gold" />
+          {isFetching && <DotLoading />}
+
+          {!isFetching && isError && (
+            <div className="px-[15px] py-5 text-center text-sm text-[#aaa]">
+              Không thể tải kết quả.
             </div>
           )}
 
-          {!isFetching && isError && (
-            <div className="px-[15px] py-5 text-center text-sm text-[#aaa]">Không thể tải kết quả.</div>
-          )}
-
           {!isFetching && !isError && results.length === 0 && (
-            <div className="px-[15px] py-5 text-center text-sm text-[#aaa]">Không tìm thấy phim.</div>
+            <div className="px-[15px] py-5 text-center text-sm text-[#aaa]">
+              Không tìm thấy phim.
+            </div>
           )}
 
           {!isFetching && !isError && results.length > 0 && (
@@ -255,7 +288,9 @@ function SearchBox({ onNavigate }: { onNavigate?: () => void }) {
                       </span>
                     )}
                     <span className="block truncate text-xs leading-[15.6px] text-[#aaa]">
-                      {[movie.year, movie.quality, movie.episodeCurrent].filter(Boolean).join(" · ")}
+                      {[movie.year, movie.quality, movie.episodeCurrent]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </span>
                   </span>
                 </button>

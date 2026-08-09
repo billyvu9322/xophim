@@ -54,6 +54,18 @@ const envSchema = z.object({
   // Absolute path to the built SPA (dist) — set only in the single-image deploy.
   WEB_STATIC_DIR: z.string().optional(),
 
+  // Hosts eligible for HLS playlist marker cleanup. Empty by default so third-party
+  // streams are never rewritten unless the operator explicitly opts in.
+  PLAYLIST_CLEANUP_ALLOWED_HOSTS: z
+    .string()
+    .default("")
+    .transform((value) =>
+      value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+
   // Comma-separated allow-list of browser origins for CORS.
   CORS_ORIGIN: z
     .string()
