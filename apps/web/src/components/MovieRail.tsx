@@ -45,14 +45,21 @@ export function MovieRail({ title, movies, ranked, action }: MovieRailProps) {
       </div>
       <Swiper
         slidesPerView="auto"
-        spaceBetween={12}
+        spaceBetween={ranked ? 18 : 12}
         speed={450}
         grabCursor
-        className="pb-2"
+        className={`pb-2${ranked ? " !pl-3" : ""}`}
         onSwiper={setSwiper}
       >
         {movies.map((m, i) => (
-          <SwiperSlide key={m.slug} className="!w-[140px] sm:!w-[160px]">
+          <SwiperSlide
+            key={m.slug}
+            className={
+              ranked
+                ? "!w-[calc((100%_-_60px)_/_6)] min-w-[120px]"
+                : "!w-[140px] sm:!w-[160px]"
+            }
+          >
             <MovieCard movie={m} rank={ranked ? i + 1 : undefined} />
           </SwiperSlide>
         ))}

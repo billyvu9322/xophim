@@ -92,71 +92,79 @@ export function MovieCard({
         search={episodeSlug ? { tap: episodeSlug } : undefined}
         className="block"
       >
+        {rank != null && (
+          <span
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute -left-2 bottom-[55px] z-20 select-none text-[6rem] font-black leading-[0.78] tracking-[-0.12em] opacity-95 sm:-left-3 sm:text-[6.5rem]",
+              rank <= 3 ? "text-gold" : "text-slate",
+            )}
+            style={{
+              WebkitTextFillColor: "black",
+              WebkitTextStroke: "0.045em currentColor",
+              textShadow: "0 14px 34px rgba(0,0,0,0.75)",
+            }}
+          >
+            {rank}
+          </span>
+        )}
         <div className="relative aspect-[2/3] overflow-hidden rounded bg-elevated">
-          <Poster
-            src={movie.posterUrl}
-            alt={movie.name}
-            label={movie.name}
-            imgClassName="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-          />
+          <div className="relative h-full w-full">
+            <Poster
+              src={movie.posterUrl}
+              alt={movie.name}
+              label={movie.name}
+              imgClassName="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+            />
 
-          {/* Hover: whitish frosted overlay + centered white play button. */}
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/25 opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover:opacity-100">
-            <span className="grid h-11 w-11 place-items-center rounded-full bg-gold text-[#111] shadow-lg ring-1 ring-white/40">
-              <Play className="h-5 w-5 translate-x-[1px] fill-[#111]" />
-            </span>
-          </div>
-
-          {imdb != null && (
-            <span className="absolute right-1 top-1 flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white">
-              <Star className="h-3 w-3 fill-gold text-gold" />
-              {imdb.toFixed(1)}
-            </span>
-          )}
-
-          <div className="absolute bottom-1 left-1 flex gap-1">
-            {badges.map((b) => (
-              <span
-                key={b.label}
-                className={cn(
-                  "rounded-sm px-1.5 py-0.5 text-[10px] font-semibold text-[#111]",
-                  b.kind === "sub" ? "bg-sub" : "bg-dub",
-                )}
-              >
-                {b.label}
+            {/* Hover: whitish frosted overlay + centered white play button. */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/25 opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover:opacity-100">
+              <span className="grid h-11 w-11 place-items-center rounded-full bg-gold text-[#111] shadow-lg ring-1 ring-white/40">
+                <Play className="h-5 w-5 translate-x-[1px] fill-[#111]" />
               </span>
-            ))}
-          </div>
-
-          {movie.episodeCurrent && (
-            <span className="absolute bottom-1 right-1 rounded-sm bg-white/20 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-              {movie.episodeCurrent}
-            </span>
-          )}
-
-          {progress != null && progress > 0 && (
-            <div className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
-              <div
-                className="h-full bg-gold"
-                style={{
-                  width: `${Math.min(100, Math.round(progress * 100))}%`,
-                }}
-              />
             </div>
-          )}
+
+            {imdb != null && (
+              <span className="absolute right-1 top-1 flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white">
+                <Star className="h-3 w-3 fill-gold text-gold" />
+                {imdb.toFixed(1)}
+              </span>
+            )}
+
+            <div className="absolute bottom-1 left-1 flex gap-1">
+              {badges.map((b) => (
+                <span
+                  key={b.label}
+                  className={cn(
+                    "rounded-sm px-1.5 py-0.5 text-[10px] font-semibold text-[#111]",
+                    b.kind === "sub" ? "bg-sub" : "bg-dub",
+                  )}
+                >
+                  {b.label}
+                </span>
+              ))}
+            </div>
+
+            {movie.episodeCurrent && (
+              <span className="absolute bottom-1 right-1 rounded-sm bg-white/20 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                {movie.episodeCurrent}
+              </span>
+            )}
+
+            {progress != null && progress > 0 && (
+              <div className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
+                <div
+                  className="h-full bg-gold"
+                  style={{
+                    width: `${Math.min(100, Math.round(progress * 100))}%`,
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-1.5 flex items-start gap-2">
-          {rank != null && (
-            <span
-              className={cn(
-                "text-2xl font-bold leading-none",
-                rank <= 3 ? "text-gold" : "text-slate",
-              )}
-            >
-              {rank.toString().padStart(2, "0")}
-            </span>
-          )}
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-white group-hover:text-gold">
               {movie.name}

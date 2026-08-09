@@ -225,6 +225,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const hasPlaybackProgressRef = useRef(false);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout>>();
     const seekingRef = useRef(false);
+    const lastPointerTypeRef = useRef<string | null>(null);
+    const skipNextClickRef = useRef(false);
 
     const [playing, setPlaying] = useState(autoPlay);
     const [playbackSrc, setPlaybackSrc] = useState(src);
@@ -413,9 +415,27 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       <div
         ref={containerRef}
         className={className ?? "relative h-full w-full bg-black"}
+        onPointerDown={(event) => {
+          lastPointerTypeRef.current = event.pointerType;
+          if (event.pointerType !== "mouse") {
+            skipNextClickRef.current = !controlsVisible;
+            wakeControls();
+          }
+        }}
+        onPointerMove={wakeControls}
         onMouseMove={wakeControls}
         onMouseLeave={() => playing && setControlsVisible(false)}
-        onClick={() => setPlaying((v) => !v)}
+        onClick={() => {
+          if (skipNextClickRef.current) {
+            skipNextClickRef.current = false;
+            return;
+          }
+          if (lastPointerTypeRef.current !== "mouse" && !controlsVisible) {
+            wakeControls();
+            return;
+          }
+          setPlaying((v) => !v);
+        }}
       >
         <ReactPlayer
           ref={playerRef}
@@ -504,6 +524,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             opacity: controlsVisible ? 1 : 0,
             pointerEvents: controlsVisible ? "auto" : "none",
           }}
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Seek bar */}
