@@ -13,9 +13,11 @@ export interface ListParams {
   limit?: number;
   sort_field?: "modified.time" | "_id" | "year";
   sort_type?: "asc" | "desc";
+  sort_lang?: "vietsub" | "thuyet-minh" | "long-tieng";
   category?: string;
   country?: string;
-  year?: number;
+  /** Single year or comma-separated years ("2020,2021") for multi-select. */
+  year?: string;
 }
 
 const get = async <T>(url: string, params?: object): Promise<T> => {

@@ -1,39 +1,15 @@
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { LogOut, Send, Share2, Users, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { VideoPlayer, type VideoPlayerHandle } from "@/components/VideoPlayer";
 import { Button } from "@/components/ui/Button";
-import { ErrorState } from "@/components/ui/states";
-import { WatchSkeleton } from "@/components/ui/skeletons";
-import { useAuth } from "@/hooks/auth";
 import { useMovieDetail } from "@/hooks/catalog";
-import { useRoom } from "@/hooks/rooms";
 import { useWatchParty } from "@/hooks/watch-party";
 import type { MovieDetail } from "@/lib/catalog-types";
 import { timeAgo } from "@/lib/format";
 
-export function RoomPage() {
-  const { code } = useParams({ from: "/xem-chung/$code" });
-  const { data: room, isLoading, error } = useRoom(code);
-  const { data: user } = useAuth();
-
-  if (isLoading) return <WatchSkeleton />;
-  if (error || !room)
-    return <ErrorState label="Không tìm thấy phòng hoặc phòng đã đóng" />;
-
-  const displayName = user?.username ?? user?.email?.split("@")[0] ?? "Khách";
-  return (
-    <RoomView
-      code={code}
-      movieSlug={room.movieSlug}
-      episodeSlug={room.episodeSlug}
-      name={displayName}
-    />
-  );
-}
-
-function findStream(
+export function findStream(
   movie: MovieDetail | undefined,
   episodeSlug: string,
 ): string {
@@ -45,7 +21,7 @@ function findStream(
   return movie.episodes[0]?.items[0]?.linkM3u8 ?? "";
 }
 
-function RoomView({
+export function RoomView({
   code,
   movieSlug,
   episodeSlug,

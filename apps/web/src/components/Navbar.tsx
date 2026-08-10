@@ -102,7 +102,7 @@ export function Navbar() {
           <NavLinks />
         </nav>
 
-        <div className="ml-auto hidden max-w-xs flex-1 md:block">
+        <div className="ml-auto hidden max-w-md flex-1 md:block">
           <SearchBox />
         </div>
 
@@ -113,16 +113,31 @@ export function Navbar() {
                 onClick={() => setAcctOpen((v) => !v)}
                 className="flex items-center gap-2 rounded-pill bg-elevated px-2.5 py-1.5 text-sm hover:bg-chip"
               >
-                <span className="grid h-6 w-6 place-items-center rounded-full bg-gold text-[#111]">
-                  <UserIcon className="h-4 w-4" />
-                </span>
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt=""
+                    className="h-6 w-6 shrink-0 rounded-full bg-gold object-cover"
+                  />
+                ) : (
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-gold text-[#111]">
+                    <UserIcon className="h-4 w-4" />
+                  </span>
+                )}
                 <span className="hidden max-w-[120px] truncate sm:inline">
-                  {user.username ?? user.email}
+                  {user.displayName || user.username || user.email}
                 </span>
                 <ChevronDown className="h-4 w-4 text-muted" />
               </button>
               {acctOpen && (
                 <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-lg border border-slate/50 bg-chrome py-1 shadow-xl">
+                  <Link
+                    to="/tai-khoan"
+                    onClick={() => setAcctOpen(false)}
+                    className="block px-4 py-2 text-sm text-silver hover:bg-elevated hover:text-white"
+                  >
+                    Hồ Sơ
+                  </Link>
                   <Link
                     to="/danh-sach"
                     onClick={() => setAcctOpen(false)}
@@ -219,6 +234,23 @@ function SearchBox({ onNavigate }: { onNavigate?: () => void }) {
     void navigate({ to: "/xem/$slug", params: { slug: movie.slug } });
   };
 
+  const goToFilter = () => {
+    setOpen(false);
+    onNavigate?.();
+    void navigate({
+      to: "/loc",
+      search: {
+        type: "phim-moi",
+        country: "",
+        category: "",
+        year: "",
+        lang: "",
+        sort: 0,
+        page: 1,
+      },
+    });
+  };
+
   const showDropdown = open && trimmedKeyword.length >= 2;
 
   return (
@@ -230,8 +262,9 @@ function SearchBox({ onNavigate }: { onNavigate?: () => void }) {
       }}
       className="relative w-full"
     >
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+      {/* White pill holding the input, a search icon, then a dark "Filter"
+          button — matches the reference design (aniwatch-style). */}
+      <div className="flex h-11 items-center gap-2 rounded-lg bg-white pl-4 pr-2">
         <input
           value={keyword}
           onChange={(event) => {
@@ -241,12 +274,27 @@ function SearchBox({ onNavigate }: { onNavigate?: () => void }) {
           onFocus={() => setOpen(true)}
           placeholder="Tìm kiếm phim..."
           autoComplete="off"
-          className="h-9 w-full rounded-md bg-elevated pl-9 pr-3 text-sm text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
+          className="h-full min-w-0 flex-1 bg-transparent text-sm text-[#111] placeholder:text-[#6b7280] focus:outline-none"
         />
+        <button
+          type="submit"
+          aria-label="Tìm kiếm"
+          className="shrink-0 text-[#111] hover:text-[#444]"
+        >
+          <Search className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={goToFilter}
+          className="flex h-8 shrink-0 ml-1 items-center gap-1.5 rounded-md bg-[#111] px-4 text-sm font-medium text-white hover:bg-[#333]"
+        >
+          {/* <SlidersHorizontal className="h-4 w-4" /> */}
+          Bộ lọc
+        </button>
       </div>
 
       {showDropdown && (
-        <div className="absolute -left-[15px] -right-[15px] top-[50px] z-50 bg-[#2d2b44] text-white shadow-[0_20px_20px_rgba(0,0,0,0.3)]">
+        <div className="absolute -left-[15px] -right-[15px] top-[54px] z-50 bg-[#2d2b44] text-white shadow-[0_20px_20px_rgba(0,0,0,0.3)]">
           {isFetching && <DotLoading />}
 
           {!isFetching && isError && (

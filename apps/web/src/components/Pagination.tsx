@@ -7,8 +7,8 @@ interface PaginationProps {
   onChange: (page: number) => void;
 }
 
-// Compact numbered pager with prev/next. Shows a window of pages around the
-// current one; gold fill marks the active page.
+// Circular pager: « ‹ 1 2 3 4 5 › » — dark round buttons, gold-filled active.
+// Shows a window of pages around the current one.
 export function Pagination({ page, totalPages, onChange }: PaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -18,12 +18,17 @@ export function Pagination({ page, totalPages, onChange }: PaginationProps) {
   const pages: number[] = [];
   for (let p = from; p <= to; p += 1) pages.push(p);
 
-  const btn = "grid h-9 min-w-9 place-items-center rounded-md px-2 text-sm transition-colors";
+  const circle =
+    "grid h-10 w-10 place-items-center rounded-full text-sm transition-colors";
+  const arrow = cn(
+    circle,
+    "bg-elevated text-silver hover:bg-chip hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-elevated disabled:hover:text-silver",
+  );
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-1.5 py-8">
+    <div className="flex flex-wrap items-center justify-center gap-2 py-8">
       <button
-        className={cn(btn, "bg-elevated text-white disabled:opacity-40")}
+        className={arrow}
         disabled={page <= 1}
         onClick={() => onChange(page - 1)}
         aria-label="Trang trước"
@@ -31,21 +36,14 @@ export function Pagination({ page, totalPages, onChange }: PaginationProps) {
         <ChevronLeft className="h-4 w-4" />
       </button>
 
-      {from > 1 && (
-        <>
-          <button className={cn(btn, "bg-elevated text-silver")} onClick={() => onChange(1)}>
-            1
-          </button>
-          {from > 2 && <span className="px-1 text-muted">…</span>}
-        </>
-      )}
-
       {pages.map((p) => (
         <button
           key={p}
           className={cn(
-            btn,
-            p === page ? "bg-gold font-semibold text-[#111]" : "bg-elevated text-silver hover:text-white",
+            circle,
+            p === page
+              ? "bg-gold font-semibold text-[#111]"
+              : "bg-elevated text-silver hover:bg-chip hover:text-white",
           )}
           onClick={() => onChange(p)}
         >
@@ -53,20 +51,8 @@ export function Pagination({ page, totalPages, onChange }: PaginationProps) {
         </button>
       ))}
 
-      {to < totalPages && (
-        <>
-          {to < totalPages - 1 && <span className="px-1 text-muted">…</span>}
-          <button
-            className={cn(btn, "bg-elevated text-silver")}
-            onClick={() => onChange(totalPages)}
-          >
-            {totalPages}
-          </button>
-        </>
-      )}
-
       <button
-        className={cn(btn, "bg-elevated text-white disabled:opacity-40")}
+        className={arrow}
         disabled={page >= totalPages}
         onClick={() => onChange(page + 1)}
         aria-label="Trang sau"

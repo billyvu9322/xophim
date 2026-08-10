@@ -4,6 +4,8 @@ export interface AuthUser {
   role: string;
   username: string | null;
   email: string;
+  displayName: string;
+  avatarUrl: string | null;
 }
 
 // Module augmentation so request.user and app.requireAuth are typed globally.

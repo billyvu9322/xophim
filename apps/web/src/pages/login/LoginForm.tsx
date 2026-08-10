@@ -1,21 +1,16 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Lock, User } from "lucide-react";
+import { User } from "lucide-react";
 import { AuthCard } from "@/components/AuthCard";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { Button } from "@/components/ui/Button";
-import {
-  useAuth,
-  useLogin,
-  useLoginWithGoogle,
-  useMergeGuest,
-} from "@/hooks/auth";
+import { useLogin, useLoginWithGoogle, useMergeGuest } from "@/hooks/auth";
 import { useGuestStore } from "@/lib/guest-store";
 import { cn } from "@/lib/utils";
+import { PasswordInput } from "./PasswordInput";
 
-export function LoginPage() {
+export function LoginForm() {
   const navigate = useNavigate();
-  const auth = useAuth();
   const loginMutation = useLogin();
   const mergeGuestMutation = useMergeGuest();
   const googleLogin = useLoginWithGoogle();
@@ -25,13 +20,6 @@ export function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (auth.data) {
-      void navigate({ to: "/" });
-    }
-  }, [auth.data, navigate]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -94,30 +82,14 @@ export function LoginPage() {
         {/* Password */}
         <div className="space-y-1.5">
           <label className="block text-sm text-silver">Mật khẩu</label>
-          <div className="relative">
-            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Nhập mật khẩu"
-              required
-              className="h-11 w-full rounded-md bg-elevated pl-10 pr-10 text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              className="absolute inset-y-0 right-0 flex items-center px-3 text-muted hover:text-silver"
-              tabIndex={-1}
-              aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </button>
-          </div>
+          <PasswordInput
+            value={password}
+            onChange={setPassword}
+            show={showPassword}
+            onToggleShow={() => setShowPassword((v) => !v)}
+            placeholder="Nhập mật khẩu"
+            required
+          />
         </div>
 
         {/* Remember me + Forgot password */}

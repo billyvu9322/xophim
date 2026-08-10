@@ -5,12 +5,19 @@ import type {
   MergeGuestPayload,
   MergeGuestResult,
   RegisterPayload,
+  UpdateProfilePayload,
 } from "./auth-types";
 
 export const authApi = {
   // GET /v1/auth/me — returns user or null; never throws 401.
   me: async (): Promise<AuthUser | null> => {
     const res = await api.get<{ user: AuthUser | null }>("/auth/me");
+    return res.data.user;
+  },
+
+  // PATCH /v1/auth/me — update editable profile (display name + avatar).
+  updateProfile: async (payload: UpdateProfilePayload): Promise<AuthUser> => {
+    const res = await api.patch<{ user: AuthUser }>("/auth/me", payload);
     return res.data.user;
   },
 

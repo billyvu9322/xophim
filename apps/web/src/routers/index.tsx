@@ -7,6 +7,7 @@ import { RootLayout } from "../pages/root";
 import { HomePage } from "../pages/home";
 import { BrowsePage } from "../pages/browse";
 import { SearchPage } from "../pages/search";
+import { FilterPage, validateFilterSearch } from "../pages/filter";
 import { WatchPage } from "../pages/watch";
 import { LoginPage } from "../pages/login";
 import { RegisterPage } from "../pages/register";
@@ -15,6 +16,7 @@ import { HistoryPage } from "../pages/history";
 import { CollectionsPage } from "../pages/collections";
 import { CollectionDetailPage } from "../pages/collection-detail";
 import { RoomPage } from "../pages/room";
+import { ProfilePage } from "../pages/profile";
 
 const rootRoute = createRootRoute({ component: RootLayout });
 
@@ -28,6 +30,13 @@ const browseRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/list/$type",
   component: BrowsePage,
+});
+
+const filterRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/loc",
+  validateSearch: validateFilterSearch,
+  component: FilterPage,
 });
 
 const searchRoute = createRoute({
@@ -96,9 +105,16 @@ const roomRoute = createRoute({
   component: RoomPage,
 });
 
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/tai-khoan",
+  component: ProfilePage,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   browseRoute,
+  filterRoute,
   searchRoute,
   watchRoute,
   loginRoute,
@@ -108,6 +124,7 @@ const routeTree = rootRoute.addChildren([
   collectionsRoute,
   collectionDetailRoute,
   roomRoute,
+  profileRoute,
 ]);
 
 export const router = createRouter({ routeTree });

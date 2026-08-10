@@ -71,6 +71,8 @@ export async function registerUser(
       role: users.role,
       username: users.username,
       email: users.email,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
     });
 
   if (!created) throw new Error("User insert returned no rows");
@@ -120,6 +122,8 @@ export async function loginUser(
     role: user.role,
     username: user.username,
     email: user.email,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
   };
 }
 
@@ -161,6 +165,8 @@ export async function oauthLink(
         role: users.role,
         username: users.username,
         email: users.email,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -176,6 +182,8 @@ export async function oauthLink(
       role: users.role,
       username: users.username,
       email: users.email,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
     })
     .from(users)
     .where(eq(users.email, input.email))
@@ -205,6 +213,8 @@ export async function oauthLink(
       role: users.role,
       username: users.username,
       email: users.email,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
     });
   if (!newUser) throw new Error("User insert returned no rows");
 
@@ -215,6 +225,40 @@ export async function oauthLink(
   });
 
   return newUser;
+}
+
+// ---------- Profile update ----------
+
+export interface UpdateProfileInput {
+  displayName?: string;
+  avatarUrl?: string | null;
+}
+
+// Update the editable profile fields (display name, avatar) and return the
+// fresh user. Only provided fields are written.
+export async function updateProfile(
+  db: Database,
+  userId: string,
+  input: UpdateProfileInput,
+): Promise<AuthUser> {
+  const patch: Partial<typeof users.$inferInsert> = {};
+  if (input.displayName !== undefined) patch.displayName = input.displayName;
+  if (input.avatarUrl !== undefined) patch.avatarUrl = input.avatarUrl;
+
+  const [updated] = await db
+    .update(users)
+    .set(patch)
+    .where(eq(users.id, userId))
+    .returning({
+      id: users.id,
+      role: users.role,
+      username: users.username,
+      email: users.email,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+    });
+  if (!updated) throw new Error("Profile update returned no rows");
+  return updated;
 }
 
 // ---------- Guest merge ----------

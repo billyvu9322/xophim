@@ -225,6 +225,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const hasPlaybackProgressRef = useRef(false);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout>>();
     const seekingRef = useRef(false);
+    const seekPreviewRef = useRef<number | null>(null);
     const lastPointerTypeRef = useRef<string | null>(null);
     const skipNextClickRef = useRef(false);
 
@@ -354,6 +355,27 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       [played, seekTo],
     );
 
+    // Commit a drag on the seek bar from ANYWHERE — if the pointer is released
+    // outside the <input> (dragged off the track), the input's own up-handlers
+    // never fire, leaving seekingRef stuck true and freezing the timeline. A
+    // global pointerup/cancel guarantees the seek is committed and resumed.
+    useEffect(() => {
+      const commit = () => {
+        if (!seekingRef.current) return;
+        seekingRef.current = false;
+        const target = seekPreviewRef.current;
+        seekPreviewRef.current = null;
+        setSeekPreview(null);
+        if (target != null) seekTo(target);
+      };
+      window.addEventListener("pointerup", commit);
+      window.addEventListener("pointercancel", commit);
+      return () => {
+        window.removeEventListener("pointerup", commit);
+        window.removeEventListener("pointercancel", commit);
+      };
+    }, [seekTo]);
+
     // --- fullscreen / pip actions ---------------------------------------
 
     const toggleFullscreen = useCallback(() => {
@@ -448,9 +470,14 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           playing={playing}
           volume={volume}
           muted={muted}
+          progressInterval={250}
           config={{
             file: {
-              forceHLS: false,
+              // A cleaned playlist is served as a blob: URL (no .m3u8 suffix),
+              // so react-player can't detect HLS by extension — force hls.js for
+              // blobs. Raw .m3u8 keeps auto-detect (native HLS on iOS Safari,
+              // hls.js elsewhere).
+              forceHLS: playbackSrc.startsWith("blob:"),
               attributes: {
                 poster,
                 preload: "metadata",
@@ -534,21 +561,14 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             max={duration || 0}
             step={0.1}
             value={seekPreview ?? played}
+            onPointerDown={() => {
+              seekingRef.current = true;
+            }}
             onChange={(e) => {
               seekingRef.current = true;
-              setSeekPreview(Number(e.target.value));
-            }}
-            onMouseUp={(e) => {
-              seekingRef.current = false;
-              const v = Number((e.target as HTMLInputElement).value);
-              setSeekPreview(null);
-              seekTo(v);
-            }}
-            onTouchEnd={(e) => {
-              seekingRef.current = false;
-              const v = Number((e.target as HTMLInputElement).value);
-              setSeekPreview(null);
-              seekTo(v);
+              const v = Number(e.target.value);
+              seekPreviewRef.current = v;
+              setSeekPreview(v);
             }}
             className="video-seek h-1 w-full cursor-pointer appearance-none rounded-full bg-white/25"
             style={{

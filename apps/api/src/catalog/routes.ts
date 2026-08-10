@@ -7,9 +7,13 @@ const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(64).optional(),
   sort_field: z.enum(["modified.time", "_id", "year"]).optional(),
   sort_type: z.enum(["asc", "desc"]).optional(),
+  // Audio track filter (KKPhim sort_lang): vietsub | thuyet-minh | long-tieng.
+  sort_lang: z.enum(["vietsub", "thuyet-minh", "long-tieng"]).optional(),
   category: z.string().optional(),
   country: z.string().optional(),
-  year: z.coerce.number().int().optional(),
+  // Comma-separated years for multi-select (e.g. "2020,2021"). KKPhim treats
+  // multiple values as OR.
+  year: z.string().optional(),
 });
 
 function toListQuery(q: z.infer<typeof listQuerySchema>): ListQuery {

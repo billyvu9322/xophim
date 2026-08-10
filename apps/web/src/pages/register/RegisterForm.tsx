@@ -1,15 +1,14 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff } from "lucide-react";
 import { AuthCard } from "@/components/AuthCard";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { Button } from "@/components/ui/Button";
-import { useAuth, useLoginWithGoogle, useRegister, useMergeGuest } from "@/hooks/auth";
+import { useRegister, useLoginWithGoogle, useMergeGuest } from "@/hooks/auth";
 import { useGuestStore } from "@/lib/guest-store";
+import { PasswordInput } from "./PasswordInput";
 
-export function RegisterPage() {
+export function RegisterForm() {
   const navigate = useNavigate();
-  const auth = useAuth();
   const registerMutation = useRegister();
   const mergeGuestMutation = useMergeGuest();
   const googleLogin = useLoginWithGoogle();
@@ -22,13 +21,6 @@ export function RegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (auth.data) {
-      void navigate({ to: "/" });
-    }
-  }, [auth.data, navigate]);
 
   function validateConfirm(pw: string, cf: string) {
     if (cf.length > 0 && pw !== cf) {
@@ -113,55 +105,33 @@ export function RegisterPage() {
         {/* Password */}
         <div className="space-y-1.5">
           <label className="block text-sm text-silver">Mật khẩu</label>
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                validateConfirm(e.target.value, confirm);
-              }}
-              placeholder="Nhập mật khẩu"
-              required
-              className="w-full h-11 px-3 pr-10 bg-elevated rounded-md text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              className="absolute inset-y-0 right-0 flex items-center px-3 text-muted hover:text-silver"
-              tabIndex={-1}
-              aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-            >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
+          <PasswordInput
+            value={password}
+            onChange={(v) => {
+              setPassword(v);
+              validateConfirm(v, confirm);
+            }}
+            show={showPassword}
+            onToggleShow={() => setShowPassword((prev) => !prev)}
+            placeholder="Nhập mật khẩu"
+            required
+          />
         </div>
 
         {/* Confirm password */}
         <div className="space-y-1.5">
           <label className="block text-sm text-silver">Nhập lại mật khẩu</label>
-          <div className="relative">
-            <input
-              type={showConfirm ? "text" : "password"}
-              value={confirm}
-              onChange={(e) => {
-                setConfirm(e.target.value);
-                validateConfirm(password, e.target.value);
-              }}
-              placeholder="Nhập lại mật khẩu"
-              required
-              className="w-full h-11 px-3 pr-10 bg-elevated rounded-md text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirm((v) => !v)}
-              className="absolute inset-y-0 right-0 flex items-center px-3 text-muted hover:text-silver"
-              tabIndex={-1}
-              aria-label={showConfirm ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-            >
-              {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
+          <PasswordInput
+            value={confirm}
+            onChange={(v) => {
+              setConfirm(v);
+              validateConfirm(password, v);
+            }}
+            show={showConfirm}
+            onToggleShow={() => setShowConfirm((prev) => !prev)}
+            placeholder="Nhập lại mật khẩu"
+            required
+          />
           {confirmError !== null && (
             <p className="text-[#FC887B] text-sm">{confirmError}</p>
           )}

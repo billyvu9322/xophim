@@ -12,7 +12,7 @@ import {
   verifyGoogleIdToken,
 } from "./oauth-google.js";
 import { createSession, deleteSession, lookupSession } from "./session.js";
-import { loginUser, mergeGuest, oauthLink, registerUser } from "./service.js";
+import { loginUser, mergeGuest, oauthLink, registerUser, updateProfile } from "./service.js";
 import "./types.js"; // ensure module augmentation is loaded
 
 const SID = "sid";
@@ -55,6 +55,8 @@ const userResponse = z.object({
   username: z.string().nullable(),
   email: z.string(),
   role: z.string(),
+  displayName: z.string(),
+  avatarUrl: z.string().nullable(),
 });
 
 export const registerAuthRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -141,6 +143,31 @@ export const registerAuthRoutes: FastifyPluginAsyncZod = async (app) => {
       if (!sid) return reply.send({ user: null });
       const user = await lookupSession(db, sid);
       return reply.send({ user: user ?? null });
+    },
+  );
+
+  // ------------------------------------------------------------------ //
+  //  PATCH /me  — update editable profile (display name + avatar).      //
+  // ------------------------------------------------------------------ //
+  app.patch(
+    "/me",
+    {
+      preHandler: [app.requireAuth],
+      schema: {
+        body: z
+          .object({
+            displayName: z.string().trim().min(1).max(50).optional(),
+            avatarUrl: z.string().url().max(500).nullable().optional(),
+          })
+          .refine((b) => b.displayName !== undefined || b.avatarUrl !== undefined, {
+            message: "Không có trường nào để cập nhật",
+          }),
+        response: { 200: z.object({ user: userResponse }) },
+      },
+    },
+    async (request, reply) => {
+      const user = await updateProfile(db, request.user!.id, request.body);
+      return reply.send({ user });
     },
   );
 

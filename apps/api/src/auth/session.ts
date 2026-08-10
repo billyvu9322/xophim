@@ -41,6 +41,8 @@ export async function lookupSession(
       role: users.role,
       username: users.username,
       email: users.email,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))

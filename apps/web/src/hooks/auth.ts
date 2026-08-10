@@ -1,7 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authApi } from "../lib/auth-api";
 import { useGuestStore } from "../lib/guest-store";
-import type { LoginPayload, MergeGuestPayload, RegisterPayload } from "../lib/auth-types";
+import type {
+  LoginPayload,
+  MergeGuestPayload,
+  RegisterPayload,
+  UpdateProfilePayload,
+} from "../lib/auth-types";
 
 export const authKeys = {
   me: ["auth", "me"] as const,
@@ -47,6 +52,18 @@ export function useLogout() {
     onSuccess: () => {
       qc.setQueryData(authKeys.me, null);
       qc.invalidateQueries({ queryKey: authKeys.me });
+    },
+  });
+}
+
+// useUpdateProfile: PATCH display name / avatar, then prime the me cache with
+// the fresh user so the navbar + profile update immediately.
+export function useUpdateProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateProfilePayload) => authApi.updateProfile(payload),
+    onSuccess: (user) => {
+      qc.setQueryData(authKeys.me, user);
     },
   });
 }

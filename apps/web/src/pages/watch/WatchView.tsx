@@ -1,4 +1,4 @@
-import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   FastForward,
   Flag,
@@ -8,25 +8,19 @@ import {
   Maximize,
   Play,
   Repeat,
-  Search,
   Share2,
   SkipBack,
   SkipForward,
-  Star,
   Users,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CommentBlock } from "@/components/CommentBlock";
 import { MovieRail } from "@/components/MovieRail";
-import { RatingBlock } from "@/components/RatingBlock";
 import { ReportDialog } from "@/components/ReportDialog";
 import { VideoPlayer } from "@/components/VideoPlayer";
-import { Poster } from "@/components/ui/Poster";
-import { ErrorState } from "@/components/ui/states";
-import { WatchSkeleton } from "@/components/ui/skeletons";
+import type { EpisodeServer, Movie, MovieDetail, ServerItem } from "@/lib/catalog-types";
 import { useAuth } from "@/hooks/auth";
-import { useMovieDetail } from "@/hooks/catalog";
 import { useCreateRoom } from "@/hooks/rooms";
 import {
   shouldThrottleProgressSave,
@@ -35,80 +29,17 @@ import {
   useToggleWatchlist,
   useWatchlist,
 } from "@/hooks/user-state";
-import type {
-  EpisodeServer,
-  Movie,
-  MovieDetail,
-  ServerItem,
-} from "@/lib/catalog-types";
-import { langBadges, stripHtml, typeLabel } from "@/lib/format";
 import { userStateApi } from "@/lib/user-state-api";
 import type { SaveProgressPayload } from "@/lib/user-state-types";
 import { cn } from "@/lib/utils";
+import { WATCH_PREF_KEYS, epLabel, trackOf } from "./constants";
+import { EpisodeSidebar } from "./EpisodeList";
+import { MovieDetailPanel } from "./MovieDetailPanel";
+import { ServerSelector } from "./ServerSelector";
+import { IconBtn, ToolBtn, ToolToggle } from "./Toolbar";
+import { useStoredBoolean } from "./use-watch-prefs";
 
-// Track classification from a KKPhim server name.
-function trackOf(serverName: string): "sub" | "dub" | "long" {
-  const s = serverName.toLowerCase();
-  if (s.includes("thuyết minh") || s.includes("t.minh")) return "dub";
-  if (s.includes("lồng tiếng") || s.includes("l.tiếng")) return "long";
-  return "sub";
-}
-const TRACK_LABEL: Record<"sub" | "dub" | "long", string> = {
-  sub: "Phụ Đề",
-  dub: "Thuyết Minh",
-  long: "Lồng Tiếng",
-};
-const TRACK_TEXT: Record<"sub" | "dub" | "long", string> = {
-  sub: "text-sub",
-  dub: "text-dub",
-  long: "text-silver",
-};
-
-const WATCH_PREF_KEYS = {
-  theater: "xophim.watch.theater",
-  autoPlay: "xophim.watch.autoPlay",
-  autoNext: "xophim.watch.autoNext",
-  skipIntro: "xophim.watch.skipIntro",
-} as const;
-
-function readStoredBoolean(key: string, fallback: boolean): boolean {
-  if (typeof window === "undefined") return fallback;
-  const value = window.localStorage.getItem(key);
-  if (value === "true") return true;
-  if (value === "false") return false;
-  return fallback;
-}
-
-function useStoredBoolean(key: string, fallback: boolean) {
-  const [value, setValue] = useState(() => readStoredBoolean(key, fallback));
-  useEffect(() => {
-    window.localStorage.setItem(key, String(value));
-  }, [key, value]);
-  return [value, setValue] as const;
-}
-
-// "1" → "Tập 1"; leave non-numeric names ("Full", "OVA") as-is.
-function epLabel(name: string): string {
-  return /^\d+$/.test(name.trim()) ? `Tập ${name.trim()}` : name;
-}
-
-export function WatchPage() {
-  const { slug } = useParams({ from: "/xem/$slug" });
-  const { data, isLoading, error } = useMovieDetail(slug);
-
-  if (isLoading) return <WatchSkeleton />;
-  if (error || !data) return <ErrorState />;
-  return (
-    <WatchView
-      key={slug}
-      slug={slug}
-      movie={data.movie}
-      similar={data.similar}
-    />
-  );
-}
-
-function WatchView({
+export function WatchView({
   slug,
   movie,
   similar,
@@ -326,8 +257,6 @@ function WatchView({
 
   const expand = () => void playerWrapRef.current?.requestFullscreen?.();
 
-  const badges = langBadges(movie.lang);
-
   return (
     <div className="relative">
       {/* Blurred movie backdrop behind the top of the page (AniWatch ambience). */}
@@ -541,93 +470,7 @@ function WatchView({
           </div>
 
           {/* col 3 — movie info (beside the player) */}
-          <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-            <div className="w-48 max-w-[120px] overflow-hidden rounded lg:w-full">
-              <div className="aspect-[2/3]">
-                <Poster
-                  src={movie.posterUrl}
-                  alt={movie.name}
-                  label={movie.name}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h1 className="text-xl font-bold text-white">{movie.name}</h1>
-              {movie.originName && (
-                <p className="text-sm text-muted">{movie.originName}</p>
-              )}
-
-              <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                {movie.score.imdb != null && (
-                  <span className="flex items-center gap-1 rounded bg-black/50 px-2 py-1 text-white">
-                    <Star className="h-3 w-3 fill-gold text-gold" />{" "}
-                    {movie.score.imdb.toFixed(1)}
-                  </span>
-                )}
-                {movie.quality && (
-                  <span className="rounded bg-gold px-1.5 py-1 font-bold text-[#111]">
-                    {movie.quality}
-                  </span>
-                )}
-                {badges.map((b) => (
-                  <span
-                    key={b.label}
-                    className={cn(
-                      "rounded-sm px-1.5 py-1 font-semibold text-[#111]",
-                      b.kind === "sub" ? "bg-sub" : "bg-dub",
-                    )}
-                  >
-                    {b.label}
-                  </span>
-                ))}
-                <span className="rounded bg-chip px-1.5 py-1 text-silver">
-                  {typeLabel(movie.type)}
-                </span>
-              </div>
-
-              {movie.categories.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {movie.categories.map((c) => (
-                    <span
-                      key={c.slug}
-                      className="rounded-pill bg-chip px-2.5 py-1 text-xs text-silver"
-                    >
-                      {c.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <Synopsis text={movie.content ? stripHtml(movie.content) : ""} />
-
-              <dl className="space-y-1.5 text-sm">
-                {movie.directors.length > 0 && (
-                  <InfoRow
-                    label="Đạo diễn"
-                    value={movie.directors.join(", ")}
-                  />
-                )}
-                {movie.actors.length > 0 && (
-                  <InfoRow label="Diễn viên" value={movie.actors.join(", ")} />
-                )}
-                {movie.countries.length > 0 && (
-                  <InfoRow
-                    label="Quốc gia"
-                    value={movie.countries.map((c) => c.name).join(", ")}
-                  />
-                )}
-                {movie.time && (
-                  <InfoRow label="Thời lượng" value={movie.time} />
-                )}
-                {movie.status && (
-                  <InfoRow label="Trạng thái" value={movie.status} />
-                )}
-              </dl>
-            </div>
-
-            <RatingBlock slug={slug} />
-          </aside>
+          <MovieDetailPanel movie={movie} slug={slug} />
         </div>
 
         {/* similar (unchanged) */}
@@ -644,249 +487,6 @@ function WatchView({
           episodeSlug={currentEpisode?.slug}
           onClose={() => setReportOpen(false)}
         />
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Episode sidebar — searchable vertical list; active row highlighted + play icon.
-// ---------------------------------------------------------------------------
-function EpisodeSidebar({
-  items,
-  currentSlug,
-  onSelect,
-}: {
-  items: ServerItem[];
-  currentSlug: string | undefined;
-  onSelect: (slug: string) => void;
-}) {
-  const [q, setQ] = useState("");
-  const query = q.trim().toLowerCase();
-  const filtered = query
-    ? items.filter((e) => e.name.toLowerCase().includes(query))
-    : items;
-
-  return (
-    <div className="max-h-[320px] overflow-y-auto p-3 lg:absolute lg:inset-0 lg:max-h-none">
-      <h2 className="mb-2 text-sm font-semibold text-white">Danh Sách Tập</h2>
-      <div className="relative mb-2">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Số tập"
-          className="h-9 w-full rounded-md bg-elevated pl-8 pr-3 text-sm text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold"
-        />
-      </div>
-      <ul className="space-y-1">
-        {filtered.map((ep, i) => {
-          const active = ep.slug === currentSlug;
-          return (
-            <li key={ep.slug}>
-              <button
-                onClick={() => onSelect(ep.slug)}
-                className={cn(
-                  "flex w-full items-center justify-between gap-2 border-l-2 rounded-md px-3 py-2 text-sm transition-colors",
-                  active
-                    ? "border-gold bg-elevated text-white"
-                    : "border-transparent text-silver hover:bg-elevated/60 hover:text-white",
-                )}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="text-xs text-muted">{i + 1}</span>
-                  <span className="truncate">{epLabel(ep.name)}</span>
-                </span>
-                {active && (
-                  <Play className="h-4 w-4 shrink-0 fill-gold text-gold" />
-                )}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Toolbar helpers
-// ---------------------------------------------------------------------------
-function ToolBtn({
-  icon,
-  label,
-  active,
-  disabled,
-  onClick,
-  className,
-  disabledShowLabel,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  active?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  className?: string;
-  disabledShowLabel?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={label}
-      className={cn(
-        "flex items-center gap-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40",
-        active ? "text-gold" : "text-silver hover:text-gold",
-        className,
-      )}
-    >
-      {icon}
-      {!disabledShowLabel && <span className="hidden sm:inline">{label}</span>}
-    </button>
-  );
-}
-
-function ToolToggle({
-  icon,
-  label,
-  on,
-  onLabel = "Bật",
-  offLabel = "Tắt",
-  onClick,
-  className,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  on: boolean;
-  onLabel?: string;
-  offLabel?: string;
-  onClick: () => void;
-  className?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-1.5 text-silver hover:text-white",
-        className,
-      )}
-    >
-      {icon}
-      <span className="hidden sm:inline">{label}:</span>
-      <span className={cn("font-medium", on ? "text-gold" : "text-muted")}>
-        {on ? onLabel : offLabel}
-      </span>
-    </button>
-  );
-}
-
-function IconBtn({
-  children,
-  label,
-  onClick,
-  className,
-}: {
-  children: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  className?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className={cn(
-        "grid h-8 w-8 place-items-center rounded-full text-silver hover:bg-elevated hover:text-white",
-        className,
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-// Synopsis with a 4-line clamp + "Xem thêm / Thu gọn" toggle (like View detail).
-function Synopsis({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
-  if (!text) return <p className="text-sm text-muted">Chưa có mô tả.</p>;
-  const long = text.length > 160;
-  return (
-    <div className="space-y-1">
-      <p
-        className={cn(
-          "text-sm leading-relaxed text-silver",
-          long && !open && "line-clamp-6",
-        )}
-      >
-        {text}
-      </p>
-      {long && (
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="text-xs font-semibold text-gold hover:underline"
-        >
-          {open ? "Thu gọn" : "Xem thêm"}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-2">
-      <dt className="shrink-0 text-muted">{label}:</dt>
-      <dd className="text-silver">{value}</dd>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Server selector — grouped by language track, colored track labels.
-// ---------------------------------------------------------------------------
-function ServerSelector({
-  groups,
-  activeIdx,
-  onSelect,
-}: {
-  groups: Record<"sub" | "dub" | "long", { idx: number; name: string }[]>;
-  activeIdx: number;
-  onSelect: (idx: number) => void;
-}) {
-  const tracks: ("sub" | "dub" | "long")[] = ["sub", "dub", "long"];
-  if (!tracks.some((t) => groups[t].length > 0)) return null;
-
-  return (
-    <div className="space-y-3">
-      <h2 className="text-sm font-semibold text-white">Chọn Server</h2>
-      {tracks.map((t) =>
-        groups[t].length === 0 ? null : (
-          <div key={t} className="flex flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                "text-xs font-semibold uppercase tracking-wide",
-                TRACK_TEXT[t],
-              )}
-            >
-              {TRACK_LABEL[t]}
-            </span>
-            {groups[t].map((s) => (
-              <button
-                key={s.idx}
-                onClick={() => onSelect(s.idx)}
-                className={cn(
-                  "rounded-pill px-4 py-1.5 text-sm transition-colors",
-                  s.idx === activeIdx
-                    ? "bg-gold font-medium text-[#111]"
-                    : "bg-chip text-silver hover:text-white",
-                )}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
-        ),
       )}
     </div>
   );

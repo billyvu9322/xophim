@@ -16,9 +16,10 @@ export interface ListQuery {
   limit?: number;
   sort_field?: string;
   sort_type?: string;
+  sort_lang?: string;
   category?: string;
   country?: string;
-  year?: number;
+  year?: string;
 }
 
 function qs(query: Record<string, string | number | undefined>): string {

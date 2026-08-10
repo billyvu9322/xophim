@@ -6,6 +6,13 @@ export interface AuthUser {
   username: string | null;
   email: string;
   role: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface UpdateProfilePayload {
+  displayName?: string;
+  avatarUrl?: string | null;
 }
 
 export interface LoginPayload {

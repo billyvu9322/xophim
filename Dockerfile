@@ -17,9 +17,11 @@ RUN pnpm install --frozen-lockfile
 # GOOGLE_CLIENT_SECRET — secrets must never be baked into the image). The Google
 # client id is public, so it's safe to default here; override with --build-arg.
 ARG VITE_API_BASE_URL=
-ARG VITE_GOOGLE_CLIENT_ID=
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ARG VITE_GOOGLE_CLIENT_ID=
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+ARG VITE_ENABLE_PLAYLIST_CLEANUP=
+ENV VITE_ENABLE_PLAYLIST_CLEANUP=$VITE_ENABLE_PLAYLIST_CLEANUP
 COPY . .
 RUN pnpm --filter @xophim/web build
 
