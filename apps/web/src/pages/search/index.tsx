@@ -12,6 +12,8 @@ export function SearchPage() {
   };
 
   const params: Omit<ListParams, "page"> = {
+    // 28 = 4 full rows on the 7-col desktop grid (KKPhim search honors limit).
+    limit: 28,
     sort_field: "modified.time",
     sort_type: "desc",
   };

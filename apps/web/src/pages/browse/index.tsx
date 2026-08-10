@@ -19,6 +19,9 @@ export function BrowsePage() {
   const { type } = useParams({ from: "/list/$type" });
 
   const listParams: Omit<ListParams, "page"> = {
+    // 28 = 4 full rows on the 7-col desktop grid. KKPhim honors limit on real
+    // type lists (phim-bo/le/…); the "phim-moi" update feed caps at 24 upstream.
+    limit: 28,
     sort_field: "modified.time",
     sort_type: "desc",
   };
