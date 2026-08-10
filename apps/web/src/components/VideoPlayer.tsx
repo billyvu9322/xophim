@@ -1,4 +1,4 @@
-import ReactPlayer from "react-player/lazy";
+import ReactPlayer from "react-player";
 import {
   forwardRef,
   useCallback,
@@ -11,6 +11,8 @@ import { cleanupPlaylist } from "@/lib/playlist-api";
 
 const ENABLE_PLAYLIST_CLEANUP =
   import.meta.env.VITE_ENABLE_PLAYLIST_CLEANUP === "true";
+
+const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2] as const;
 
 export interface VideoPlayerHandle {
   play: () => void;
@@ -235,6 +237,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const [duration, setDuration] = useState(0);
     const [seekPreview, setSeekPreview] = useState<number | null>(null);
     const [volume, setVolume] = useState(1);
+    const [playbackRate, setPlaybackRate] = useState(1);
     const [muted, setMuted] = useState(autoPlay);
     const [controlsVisible, setControlsVisible] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -468,6 +471,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           pip
           playsinline
           playing={playing}
+          playbackRate={playbackRate}
           volume={volume}
           muted={muted}
           progressInterval={250}
@@ -477,10 +481,29 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               // so react-player can't detect HLS by extension — force hls.js for
               // blobs. Raw .m3u8 keeps auto-detect (native HLS on iOS Safari,
               // hls.js elsewhere).
-              forceHLS: playbackSrc.startsWith("blob:"),
+              forceHLS: true,
+              hlsOptions: {
+                enableWorker: true,
+                lowLatencyMode: false,
+                startFragPrefetch: true,
+                capLevelToPlayerSize: true,
+                capLevelOnFPSDrop: true,
+                backBufferLength: 30,
+                maxBufferLength: 60,
+                maxMaxBufferLength: 120,
+                maxBufferSize: 80 * 1000 * 1000,
+                manifestLoadingTimeOut: 10_000,
+                manifestLoadingMaxRetry: 2,
+                levelLoadingTimeOut: 10_000,
+                levelLoadingMaxRetry: 4,
+                fragLoadingTimeOut: 20_000,
+                fragLoadingMaxRetry: 6,
+                fragLoadingRetryDelay: 500,
+                testBandwidth: true,
+              },
               attributes: {
                 poster,
-                preload: "metadata",
+                preload: autoPlay ? "auto" : "metadata",
                 playsInline: true,
                 controlsList: "nodownload",
               },
@@ -640,6 +663,18 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             </div>
 
             <div className="flex items-center gap-3 sm:gap-4">
+              <select
+                aria-label="Tốc độ phát"
+                value={playbackRate}
+                onChange={(e) => setPlaybackRate(Number(e.target.value))}
+                className="rounded-md border border-white/15 bg-black/55 px-2 py-1 text-xs font-medium text-white outline-none hover:bg-white/10 focus:border-white/40 sm:text-sm"
+              >
+                {PLAYBACK_RATES.map((rate) => (
+                  <option key={rate} value={rate} className="bg-black text-white">
+                    {rate}x
+                  </option>
+                ))}
+              </select>
               <button
                 type="button"
                 aria-label="Picture in picture"
