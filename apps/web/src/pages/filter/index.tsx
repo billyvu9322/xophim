@@ -61,6 +61,9 @@ export function FilterPage() {
 
   const params: ListParams = {
     page: search.page,
+    // 28 = 4 full rows on the 7-col desktop grid (default 24 leaves a short
+    // last row of 3). The grid still wraps cleanly at smaller breakpoints.
+    limit: 28,
     sort_field: sortOpt.field,
     sort_type: sortOpt.type,
     ...(filter.category.length ? { category: filter.category.join(",") } : {}),
