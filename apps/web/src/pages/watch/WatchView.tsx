@@ -140,6 +140,10 @@ export function WatchView({
     false,
   );
   const [reportOpen, setReportOpen] = useState(false);
+  // Centered 2/3-viewport ("cinema") mode: only the player + bottom toolbar
+  // show; episode list, server picker and detail panel hide behind a dim
+  // backdrop. Toggled from a button inside the VideoPlayer control bar.
+  const [wide, setWide] = useState(false);
 
   const { items: watchlist } = useWatchlist();
   const toggleWatchlist = useToggleWatchlist();
@@ -291,6 +295,16 @@ export function WatchView({
           />
         )}
 
+        {/* 2/3 cinema mode backdrop — click to exit. Sits above the navbar and
+            theater dim; the player column (z-[60]) lifts above it. */}
+        {wide && (
+          <div
+            className="fixed inset-0 z-50 cursor-pointer bg-black/90"
+            onClick={() => setWide(false)}
+            aria-label="Thoát chế độ phóng to"
+          />
+        )}
+
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
           {/* joined block: Danh Sách Tập + player + controls (frosted over backdrop).
               backdrop-blur creates a stacking context, so lift the whole block
@@ -299,13 +313,26 @@ export function WatchView({
             <div
               className={cn(
                 " rounded-lg bg-chrome/70 ring-1 ring-white/5 backdrop-blur-xl",
-                theater && "relative z-40",
+                // Lift the block above the lights-off dim (z-30) — but NOT in
+                // wide mode: a `relative z-40` here would trap the fixed player
+                // column (z-[60]) inside this block's stacking context, letting
+                // the wide backdrop (z-50) paint over the player.
+                theater && !wide && "relative z-40",
+                // backdrop-filter creates a containing block for `fixed`
+                // descendants — drop it in wide mode so the player column
+                // centers against the viewport, not this block.
+                wide && "!backdrop-blur-none",
               )}
             >
               <div className="flex flex-col lg:flex-row pb-3">
                 {/* episodes — flush against the player. On mobile the player comes
                   first (order) so it isn't buried under a long episode list. */}
-                <div className="order-2 border-t border-slate/50 lg:relative lg:order-1 lg:w-[240px] lg:shrink-0 lg:overflow-hidden lg:border-t-0 lg:border-r">
+                <div
+                  className={cn(
+                    "order-2 border-t border-slate/50 lg:relative lg:order-1 lg:w-[240px] lg:shrink-0 lg:overflow-hidden lg:border-t-0 lg:border-r",
+                    wide && "hidden",
+                  )}
+                >
                   <EpisodeSidebar
                     items={items}
                     currentSlug={currentEpisode?.slug}
@@ -314,7 +341,16 @@ export function WatchView({
                 </div>
 
                 {/* player + controls */}
-                <div className="order-1 min-w-0 flex-1 lg:order-2">
+                <div
+                  className={cn(
+                    "order-1 min-w-0 flex-1 lg:order-2",
+                    // 2/3-viewport centered overlay. Width caps so the video
+                    // height never exceeds the viewport (leaving room for the
+                    // toolbar below it).
+                    wide &&
+                      "fixed left-1/2 top-1/2 z-[60] w-[min(66.666vw,calc((100vh-160px)*16/9))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg bg-chrome shadow-2xl",
+                  )}
+                >
                   <div
                     ref={playerWrapRef}
                     className={cn("relative", theater && "z-40")}
@@ -329,6 +365,8 @@ export function WatchView({
                           startAt={startAt}
                           onTimeUpdate={onTimeUpdate}
                           onEnded={() => autoNext && goNext()}
+                          wide={wide}
+                          onToggleWide={() => setWide((v) => !v)}
                         />
                       ) : (
                         <div className="grid h-full place-items-center text-muted">
@@ -446,7 +484,12 @@ export function WatchView({
                   </div>
 
                   {/* server row: gold callout (left) + server selector (right) */}
-                  <div className="flex flex-col gap-3 p-3 lg:flex-row lg:items-stretch">
+                  <div
+                    className={cn(
+                      "flex flex-col gap-3 p-3 lg:flex-row lg:items-stretch",
+                      wide && "hidden",
+                    )}
+                  >
                     <div className="flex items-center gap-1 rounded-md bg-gold/90 px-4 py-3 text-xs font-medium leading-snug text-[#111] lg:w-56 lg:shrink-0">
                       <span>
                         Bạn đang xem{" "}
@@ -474,8 +517,8 @@ export function WatchView({
             <CommentBlock slug={slug} />
           </div>
 
-          {/* col 3 — movie info (beside the player) */}
-          <MovieDetailPanel movie={movie} slug={slug} />
+          {/* col 3 — movie info (beside the player). Hidden in 2/3 cinema mode. */}
+          {!wide && <MovieDetailPanel movie={movie} slug={slug} />}
         </div>
 
         {/* similar (unchanged) */}

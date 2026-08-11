@@ -8,9 +8,18 @@ import {
   useState,
 } from "react";
 import { cleanupPlaylist } from "@/apis/playlist-api";
+import { cn } from "@/lib/utils";
 
 const ENABLE_PLAYLIST_CLEANUP =
   import.meta.env.VITE_ENABLE_PLAYLIST_CLEANUP === "true";
+
+// Playlist cleanup serves a blob: playlist that only hls.js (MSE) can play.
+// iOS Safari on iPhone has no classic `MediaSource` (only ManagedMediaSource),
+// so it can't run hls.js — it MUST use native HLS on the raw .m3u8 URL. Gate
+// cleanup on real MSE support so iOS falls back to the playable raw stream
+// instead of a blob it can never decode.
+const SUPPORTS_MSE =
+  typeof window !== "undefined" && "MediaSource" in window;
 
 const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2] as const;
 
@@ -33,6 +42,10 @@ interface VideoPlayerProps {
   onPause?: () => void;
   onSeeked?: (positionSec: number) => void;
   className?: string;
+  /** True when the parent is showing the player in centered 2/3-viewport mode. */
+  wide?: boolean;
+  /** Toggle the parent's 2/3-viewport mode. Button hidden if not provided. */
+  onToggleWide?: () => void;
 }
 
 function formatTime(sec: number): string {
@@ -199,6 +212,104 @@ function FullscreenExitIcon() {
     </svg>
   );
 }
+// Enter 2/3-viewport ("cinema") mode — a wide screen with outward arrows.
+function WideEnterIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      className="h-5 w-5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="6" width="18" height="12" rx="1.5" />
+      <path d="M10 12H7M7 12l1.5-1.5M7 12l1.5 1.5M14 12h3M17 12l-1.5-1.5M17 12l1.5 1.5" />
+    </svg>
+  );
+}
+// Exit 2/3 mode — wide screen with inward arrows.
+function WideExitIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      className="h-5 w-5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="6" width="18" height="12" rx="1.5" />
+      <path d="M7 12h3M10 12l-1.5-1.5M10 12l-1.5 1.5M17 12h-3M14 12l1.5-1.5M14 12l1.5 1.5" />
+    </svg>
+  );
+}
+
+// Compact playback-rate control — a small pill that opens a tidy popover list
+// above it. Replaces the bulky native <select> for a cleaner, smaller footprint.
+function PlaybackRateControl({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (rate: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-label="Tốc độ phát"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "flex h-7 items-center gap-0.5 rounded-md px-2 text-xs font-semibold tabular-nums transition-colors",
+          value !== 1
+            ? "bg-gold text-[#111]"
+            : "bg-white/10 text-white hover:bg-white/20",
+        )}
+      >
+        {value}
+        <span className="text-[10px] font-normal opacity-70">x</span>
+      </button>
+      {open && (
+        <div className="absolute bottom-full right-0 mb-2 min-w-[5rem] overflow-hidden rounded-lg border border-white/10 bg-[#16161a]/95 py-1 shadow-xl backdrop-blur">
+          {PLAYBACK_RATES.map((rate) => (
+            <button
+              key={rate}
+              type="button"
+              onClick={() => {
+                onChange(rate);
+                setOpen(false);
+              }}
+              className={cn(
+                "block w-full px-3 py-1.5 text-left text-xs tabular-nums transition-colors",
+                rate === value
+                  ? "bg-white/10 font-semibold text-gold"
+                  : "text-white/85 hover:bg-white/10",
+              )}
+            >
+              {rate === 1 ? "Chuẩn" : `${rate}x`}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Movie player wrapper over react-player. Keeps the old imperative API for
 // watch-party sync while using a fully custom control surface (no native
@@ -217,6 +328,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       onPause,
       onSeeked,
       className,
+      wide = false,
+      onToggleWide,
     },
     ref,
   ) {
@@ -246,7 +359,11 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     // --- stream source (with optional playlist cleanup) -----------------
 
     useEffect(() => {
-      if (!ENABLE_PLAYLIST_CLEANUP || !/\.m3u8?(\?.*)?$/i.test(src)) {
+      if (
+        !ENABLE_PLAYLIST_CLEANUP ||
+        !SUPPORTS_MSE ||
+        !/\.m3u8?(\?.*)?$/i.test(src)
+      ) {
         setPlaybackSrc(src);
         return;
       }
@@ -479,9 +596,9 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             file: {
               // A cleaned playlist is served as a blob: URL (no .m3u8 suffix),
               // so react-player can't detect HLS by extension — force hls.js for
-              // blobs. Raw .m3u8 keeps auto-detect (native HLS on iOS Safari,
-              // hls.js elsewhere).
-              forceHLS: true,
+              // blobs only. Raw .m3u8 keeps auto-detect so iOS Safari (no MSE →
+              // hls.js can't run) plays via its NATIVE HLS engine.
+              forceHLS: playbackSrc.startsWith("blob:"),
               hlsOptions: {
                 enableWorker: true,
                 lowLatencyMode: false,
@@ -492,14 +609,38 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                 maxBufferLength: 60,
                 maxMaxBufferLength: 120,
                 maxBufferSize: 80 * 1000 * 1000,
-                manifestLoadingTimeOut: 10_000,
-                manifestLoadingMaxRetry: 2,
-                levelLoadingTimeOut: 10_000,
-                levelLoadingMaxRetry: 4,
-                fragLoadingTimeOut: 20_000,
-                fragLoadingMaxRetry: 6,
-                fragLoadingRetryDelay: 500,
-                testBandwidth: true,
+                // Faster start: skip the low-level "bandwidth probe" fragment and
+                // pick an initial level from a realistic estimate (~1.5 Mbps)
+                // instead of the over-conservative 500 kbps default.
+                testBandwidth: false,
+                abrEwmaDefaultEstimate: 1_500_000,
+                // Load/retry policy on the current hls.js API (the flat
+                // manifest/level/fragLoading* options are deprecated in 1.6).
+                // maxTimeToFirstByteMs targets slow-origin segments directly.
+                manifestLoadPolicy: {
+                  default: {
+                    maxTimeToFirstByteMs: 10_000,
+                    maxLoadTimeMs: 20_000,
+                    timeoutRetry: { maxNumRetry: 2, retryDelayMs: 0, maxRetryDelayMs: 0 },
+                    errorRetry: { maxNumRetry: 2, retryDelayMs: 1000, maxRetryDelayMs: 8000, backoff: "linear" },
+                  },
+                },
+                playlistLoadPolicy: {
+                  default: {
+                    maxTimeToFirstByteMs: 10_000,
+                    maxLoadTimeMs: 20_000,
+                    timeoutRetry: { maxNumRetry: 2, retryDelayMs: 0, maxRetryDelayMs: 0 },
+                    errorRetry: { maxNumRetry: 4, retryDelayMs: 1000, maxRetryDelayMs: 8000, backoff: "linear" },
+                  },
+                },
+                fragLoadPolicy: {
+                  default: {
+                    maxTimeToFirstByteMs: 9_000,
+                    maxLoadTimeMs: 60_000,
+                    timeoutRetry: { maxNumRetry: 2, retryDelayMs: 0, maxRetryDelayMs: 0 },
+                    errorRetry: { maxNumRetry: 6, retryDelayMs: 500, maxRetryDelayMs: 8000, backoff: "linear" },
+                  },
+                },
               },
               attributes: {
                 poster,
@@ -543,10 +684,30 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           onEnded={onEnded}
         />
 
-        {/* Center buffering / big play affordance */}
+        {/* Center buffering spinner */}
         {buffering && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          </div>
+        )}
+
+        {/* Center play affordance — shown when paused / not yet started. Just a
+            small (~50px) rounded play triangle. Visual only
+            (pointer-events-none): the container's onClick handles play. */}
+        {!playing && !buffering && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.6}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              className="h-10 w-10 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)] sm:h-[80px] sm:w-[80px]"
+            >
+              <circle cx="12" cy="12" r="9.5" />
+              <path d="M10 8.2l5.5 3.8-5.5 3.8z" />
+            </svg>
           </div>
         )}
 
@@ -663,18 +824,10 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             </div>
 
             <div className="flex items-center gap-3 sm:gap-4">
-              <select
-                aria-label="Tốc độ phát"
+              <PlaybackRateControl
                 value={playbackRate}
-                onChange={(e) => setPlaybackRate(Number(e.target.value))}
-                className="rounded-md border border-white/15 bg-black/55 px-2 py-1 text-xs font-medium text-white outline-none hover:bg-white/10 focus:border-white/40 sm:text-sm"
-              >
-                {PLAYBACK_RATES.map((rate) => (
-                  <option key={rate} value={rate} className="bg-black text-white">
-                    {rate}x
-                  </option>
-                ))}
-              </select>
+                onChange={setPlaybackRate}
+              />
               <button
                 type="button"
                 aria-label="Picture in picture"
@@ -683,6 +836,16 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               >
                 <PipIcon />
               </button>
+              {onToggleWide && (
+                <button
+                  type="button"
+                  aria-label={wide ? "Thu nhỏ" : "Phóng to 2/3 màn hình"}
+                  onClick={onToggleWide}
+                  className="hidden hover:opacity-80 lg:block"
+                >
+                  {wide ? <WideExitIcon /> : <WideEnterIcon />}
+                </button>
+              )}
               <button
                 type="button"
                 aria-label={
