@@ -4,7 +4,7 @@ import { MovieGrid } from "@/components/MovieGrid";
 import { ErrorState, EmptyState } from "@/components/ui/states";
 import { CollectionDetailSkeleton } from "@/components/ui/skeletons";
 import type { MovieCardData } from "@/components/MovieCard";
-import type { CollectionItem } from "@/lib/collections-types";
+import type { CollectionItem } from "@/apis/types/collections-types";
 
 function toMovieCardData(item: CollectionItem): MovieCardData {
   return {

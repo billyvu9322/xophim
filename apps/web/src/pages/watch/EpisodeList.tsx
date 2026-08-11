@@ -1,6 +1,6 @@
 import { Play, Search } from "lucide-react";
 import { useState } from "react";
-import type { ServerItem } from "@/lib/catalog-types";
+import type { ServerItem } from "@/apis/types/catalog-types";
 import { cn } from "@/lib/utils";
 import { epLabel } from "./constants";
 

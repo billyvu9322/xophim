@@ -5,7 +5,7 @@ import { AuthCard } from "@/components/AuthCard";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { Button } from "@/components/ui/Button";
 import { useLogin, useLoginWithGoogle, useMergeGuest } from "@/hooks/auth";
-import { useGuestStore } from "@/lib/guest-store";
+import { useGuestStore } from "@/stores/guest-store";
 import { cn } from "@/lib/utils";
 import { PasswordInput } from "./PasswordInput";
 

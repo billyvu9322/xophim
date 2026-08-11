@@ -1,9 +1,11 @@
-import type { Movie } from "./catalog-types";
-import type { MovieSnapshot } from "./user-state-types";
+import type { Movie } from "../apis/types/catalog-types";
+import type { MovieSnapshot } from "../apis/types/user-state-types";
 
 // Map a catalog Movie to the compact snapshot the user-state API stores
 // alongside watchlist / progress rows (name, poster, type, year).
-export function toSnapshot(movie: Pick<Movie, "name" | "posterUrl" | "type" | "year">): MovieSnapshot {
+export function toSnapshot(
+  movie: Pick<Movie, "name" | "posterUrl" | "type" | "year">,
+): MovieSnapshot {
   return {
     name: movie.name,
     posterUrl: movie.posterUrl,
@@ -63,7 +65,8 @@ export function episodeCount(episodeCurrent: string): number | null {
 // Short Vietnamese airing status derived from `episodeCurrent`.
 export function statusLabel(episodeCurrent: string): string {
   const s = (episodeCurrent ?? "").toLowerCase();
-  if (s.includes("hoàn") || s.includes("full") || s.includes("trọn")) return "Đã hoàn thành";
+  if (s.includes("hoàn") || s.includes("full") || s.includes("trọn"))
+    return "Đã hoàn thành";
   if (s.includes("tập") || s.includes("/")) return "Đang chiếu";
   return "Đã phát hành";
 }

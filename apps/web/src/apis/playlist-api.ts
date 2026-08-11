@@ -1,4 +1,4 @@
-import { cleanupHlsPlaylist, firstVariantUri } from "./playlist-cleanup";
+import { cleanupHlsPlaylist, firstVariantUri } from "../lib/playlist-cleanup";
 
 // Content-types an HLS playlist may legitimately be served as. text/plain is
 // tolerated too (many CDNs mislabel .m3u8). Anything else = not a playlist.

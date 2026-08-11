@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { catalogApi, type ListParams } from "../lib/catalog-api";
+import { catalogApi, type ListParams } from "@/apis/catalog-api";
 
 export const catalogKeys = {
   home: ["catalog", "home"] as const,

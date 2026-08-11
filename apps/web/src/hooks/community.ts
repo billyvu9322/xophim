@@ -4,13 +4,13 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { communityApi } from "../lib/community-api";
+import { communityApi } from "@/apis/community-api";
 import type {
   CommentPage,
   PostCommentInput,
   RatingResult,
   ReportInput,
-} from "../lib/community-types";
+} from "../apis/types/community-types";
 
 export const communityKeys = {
   comments: (slug: string) => ["community", "comments", slug] as const,
@@ -34,7 +34,8 @@ export function useComments(slug: string) {
 export function usePostComment(slug: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: PostCommentInput) => communityApi.postComment(slug, input),
+    mutationFn: (input: PostCommentInput) =>
+      communityApi.postComment(slug, input),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: communityKeys.comments(slug) });
     },
@@ -60,23 +61,34 @@ export function useLikeComment(slug: string) {
     onMutate: async (commentId: string) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData(key);
-      qc.setQueryData(key, (old: { pages: CommentPage[]; pageParams: unknown[] } | undefined) => {
-        if (!old) return old;
-        const flip = <T extends { id: string; liked: boolean; likeCount: number }>(x: T): T =>
-          x.id === commentId
-            ? { ...x, liked: !x.liked, likeCount: x.likeCount + (x.liked ? -1 : 1) }
-            : x;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            items: page.items.map((c) => ({
-              ...flip(c),
-              replies: c.replies.map(flip),
+      qc.setQueryData(
+        key,
+        (old: { pages: CommentPage[]; pageParams: unknown[] } | undefined) => {
+          if (!old) return old;
+          const flip = <
+            T extends { id: string; liked: boolean; likeCount: number },
+          >(
+            x: T,
+          ): T =>
+            x.id === commentId
+              ? {
+                  ...x,
+                  liked: !x.liked,
+                  likeCount: x.likeCount + (x.liked ? -1 : 1),
+                }
+              : x;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              items: page.items.map((c) => ({
+                ...flip(c),
+                replies: c.replies.map(flip),
+              })),
             })),
-          })),
-        };
-      });
+          };
+        },
+      );
       return { prev };
     },
     onError: (_err, _id, context) => {
@@ -109,9 +121,14 @@ export function useRate(slug: string) {
       if (prev) {
         const wasRated = prev.mine !== null;
         const newCount = wasRated ? prev.count : prev.count + 1;
-        const totalScore = (prev.avg ?? 0) * prev.count - (prev.mine ?? 0) + score;
+        const totalScore =
+          (prev.avg ?? 0) * prev.count - (prev.mine ?? 0) + score;
         const newAvg = parseFloat((totalScore / newCount).toFixed(2));
-        qc.setQueryData<RatingResult>(key, { avg: newAvg, count: newCount, mine: score });
+        qc.setQueryData<RatingResult>(key, {
+          avg: newAvg,
+          count: newCount,
+          mine: score,
+        });
       }
       return { prev };
     },

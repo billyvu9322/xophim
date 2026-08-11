@@ -6,7 +6,7 @@ import type {
   MergeGuestResult,
   RegisterPayload,
   UpdateProfilePayload,
-} from "./auth-types";
+} from "./types/auth-types";
 
 export const authApi = {
   // GET /v1/auth/me — returns user or null; never throws 401.
@@ -36,7 +36,9 @@ export const authApi = {
   // POST /v1/auth/google — verifies a Google access token (from the GIS implicit
   // flow, useGoogleLogin) server-side and creates a session.
   loginWithGoogle: async (accessToken: string): Promise<AuthUser> => {
-    const res = await api.post<{ user: AuthUser }>("/auth/google", { accessToken });
+    const res = await api.post<{ user: AuthUser }>("/auth/google", {
+      accessToken,
+    });
     return res.data.user;
   },
 

@@ -6,7 +6,7 @@ import type {
   Movie,
   Paged,
   Taxonomy,
-} from "./catalog-types";
+} from "./types/catalog-types";
 
 export interface ListParams {
   page?: number;
@@ -28,12 +28,14 @@ const get = async <T>(url: string, params?: object): Promise<T> => {
 export const catalogApi = {
   home: () => get<HomeData>("/catalog/home"),
   detail: (slug: string) => get<DetailData>(`/catalog/detail/${slug}`),
-  list: (type: string, params: ListParams) => get<Paged<Movie>>(`/catalog/list/${type}`, params),
+  list: (type: string, params: ListParams) =>
+    get<Paged<Movie>>(`/catalog/list/${type}`, params),
   category: (slug: string, params: ListParams) =>
     get<Paged<Movie>>(`/catalog/category/${slug}`, params),
   country: (slug: string, params: ListParams) =>
     get<Paged<Movie>>(`/catalog/country/${slug}`, params),
-  year: (year: number, params: ListParams) => get<Paged<Movie>>(`/catalog/year/${year}`, params),
+  year: (year: number, params: ListParams) =>
+    get<Paged<Movie>>(`/catalog/year/${year}`, params),
   search: (keyword: string, params: ListParams) =>
     get<Paged<Movie>>("/catalog/search", { keyword, ...params }),
   categories: () => get<Taxonomy[]>("/catalog/categories"),

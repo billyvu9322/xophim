@@ -1,6 +1,6 @@
 import InfiniteScroll from "react-infinite-scroll-component";
 import { MovieGrid } from "./MovieGrid";
-import type { Movie } from "@/lib/catalog-types";
+import type { Movie } from "@/apis/types/catalog-types";
 import { DotLoading } from "./ui/DotLoading";
 
 interface InfiniteMovieGridProps {

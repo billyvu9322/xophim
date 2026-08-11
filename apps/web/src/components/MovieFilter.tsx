@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
-import type { FiltersData } from "@/lib/catalog-types";
+import type { FiltersData } from "@/apis/types/catalog-types";
 import { cn } from "@/lib/utils";
 
 // Sort presets — labels mirror RoPhim; fields map to what the KKPhim list API
@@ -147,107 +147,109 @@ export function MovieFilter({
                 rows internally so the grid below isn't pushed off-screen. The
                 Lọc/Đóng bar stays pinned outside this scroll region. */}
             <div className="max-h-[55vh] overflow-y-auto pr-1 [scrollbar-width:thin] sm:max-h-none sm:overflow-visible sm:pr-0">
-            <Row label="Quốc gia">
-              <Chip
-                active={draft.country.length === 0}
-                onClick={() => setDraft({ ...draft, country: [] })}
-              >
-                Tất cả
-              </Chip>
-              {filters?.countries.map((c) => (
+              <Row label="Quốc gia">
                 <Chip
-                  key={c.slug}
-                  active={draft.country.includes(c.slug)}
-                  onClick={() =>
-                    setDraft({
-                      ...draft,
-                      country: toggleSlug(draft.country, c.slug),
-                    })
-                  }
+                  active={draft.country.length === 0}
+                  onClick={() => setDraft({ ...draft, country: [] })}
                 >
-                  {c.name}
+                  Tất cả
                 </Chip>
-              ))}
-            </Row>
-
-            {showType && (
-              <Row label="Loại phim">
-                {TYPE_OPTIONS.map((t) => (
+                {filters?.countries.map((c) => (
                   <Chip
-                    key={t.slug}
-                    active={draft.type === t.slug}
-                    onClick={() => setDraft({ ...draft, type: t.slug })}
+                    key={c.slug}
+                    active={draft.country.includes(c.slug)}
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        country: toggleSlug(draft.country, c.slug),
+                      })
+                    }
                   >
-                    {t.label}
+                    {c.name}
                   </Chip>
                 ))}
               </Row>
-            )}
 
-            <Row label="Âm thanh">
-              {LANG_OPTIONS.map((l) => (
-                <Chip
-                  key={l.value}
-                  active={draft.lang === l.value}
-                  onClick={() => setDraft({ ...draft, lang: l.value })}
-                >
-                  {l.label}
-                </Chip>
-              ))}
-            </Row>
+              {showType && (
+                <Row label="Loại phim">
+                  {TYPE_OPTIONS.map((t) => (
+                    <Chip
+                      key={t.slug}
+                      active={draft.type === t.slug}
+                      onClick={() => setDraft({ ...draft, type: t.slug })}
+                    >
+                      {t.label}
+                    </Chip>
+                  ))}
+                </Row>
+              )}
 
-            <Row label="Thể loại">
-              <Chip
-                active={draft.category.length === 0}
-                onClick={() => setDraft({ ...draft, category: [] })}
-              >
-                Tất cả
-              </Chip>
-              {filters?.categories.map((c) => (
-                <Chip
-                  key={c.slug}
-                  active={draft.category.includes(c.slug)}
-                  onClick={() =>
-                    setDraft({
-                      ...draft,
-                      category: toggleSlug(draft.category, c.slug),
-                    })
-                  }
-                >
-                  {c.name}
-                </Chip>
-              ))}
-            </Row>
+              <Row label="Âm thanh">
+                {LANG_OPTIONS.map((l) => (
+                  <Chip
+                    key={l.value}
+                    active={draft.lang === l.value}
+                    onClick={() => setDraft({ ...draft, lang: l.value })}
+                  >
+                    {l.label}
+                  </Chip>
+                ))}
+              </Row>
 
-            <Row label="Năm sản xuất">
-              <Chip
-                active={draft.year.length === 0}
-                onClick={() => setDraft({ ...draft, year: [] })}
-              >
-                Tất cả
-              </Chip>
-              {filters?.years.map((y) => (
+              <Row label="Thể loại">
                 <Chip
-                  key={y}
-                  active={draft.year.includes(y)}
-                  onClick={() => setDraft({ ...draft, year: toggleNum(draft.year, y) })}
+                  active={draft.category.length === 0}
+                  onClick={() => setDraft({ ...draft, category: [] })}
                 >
-                  {y}
+                  Tất cả
                 </Chip>
-              ))}
-            </Row>
+                {filters?.categories.map((c) => (
+                  <Chip
+                    key={c.slug}
+                    active={draft.category.includes(c.slug)}
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        category: toggleSlug(draft.category, c.slug),
+                      })
+                    }
+                  >
+                    {c.name}
+                  </Chip>
+                ))}
+              </Row>
 
-            <Row label="Sắp xếp">
-              {SORT_OPTIONS.map((opt, idx) => (
+              <Row label="Năm sản xuất">
                 <Chip
-                  key={opt.label}
-                  active={draft.sortIdx === idx}
-                  onClick={() => setDraft({ ...draft, sortIdx: idx })}
+                  active={draft.year.length === 0}
+                  onClick={() => setDraft({ ...draft, year: [] })}
                 >
-                  {opt.label}
+                  Tất cả
                 </Chip>
-              ))}
-            </Row>
+                {filters?.years.map((y) => (
+                  <Chip
+                    key={y}
+                    active={draft.year.includes(y)}
+                    onClick={() =>
+                      setDraft({ ...draft, year: toggleNum(draft.year, y) })
+                    }
+                  >
+                    {y}
+                  </Chip>
+                ))}
+              </Row>
+
+              <Row label="Sắp xếp">
+                {SORT_OPTIONS.map((opt, idx) => (
+                  <Chip
+                    key={opt.label}
+                    active={draft.sortIdx === idx}
+                    onClick={() => setDraft({ ...draft, sortIdx: idx })}
+                  >
+                    {opt.label}
+                  </Chip>
+                ))}
+              </Row>
             </div>
 
             <div className="mt-4 flex items-center gap-3">

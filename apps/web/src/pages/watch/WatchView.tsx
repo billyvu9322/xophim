@@ -19,7 +19,12 @@ import { CommentBlock } from "@/components/CommentBlock";
 import { MovieRail } from "@/components/MovieRail";
 import { ReportDialog } from "@/components/ReportDialog";
 import { VideoPlayer } from "@/components/VideoPlayer";
-import type { EpisodeServer, Movie, MovieDetail, ServerItem } from "@/lib/catalog-types";
+import type {
+  EpisodeServer,
+  Movie,
+  MovieDetail,
+  ServerItem,
+} from "@/apis/types/catalog-types";
 import { useAuth } from "@/hooks/auth";
 import { useCreateRoom } from "@/hooks/rooms";
 import {
@@ -29,8 +34,8 @@ import {
   useToggleWatchlist,
   useWatchlist,
 } from "@/hooks/user-state";
-import { userStateApi } from "@/lib/user-state-api";
-import type { SaveProgressPayload } from "@/lib/user-state-types";
+import { userStateApi } from "@/apis/user-state-api";
+import type { SaveProgressPayload } from "@/apis/types/user-state-types";
 import { cn } from "@/lib/utils";
 import { WATCH_PREF_KEYS, epLabel, trackOf } from "./constants";
 import { EpisodeSidebar } from "./EpisodeList";

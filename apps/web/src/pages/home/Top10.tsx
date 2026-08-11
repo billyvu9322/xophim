@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Poster } from "@/components/ui/Poster";
-import type { Movie } from "@/lib/catalog-types";
+import type { Movie } from "@/apis/types/catalog-types";
 import { cn } from "@/lib/utils";
 
 export function Top10({ tabs }: { tabs: Record<string, Movie[]> }) {

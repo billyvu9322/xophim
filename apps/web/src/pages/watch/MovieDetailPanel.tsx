@@ -2,7 +2,7 @@ import { Star } from "lucide-react";
 import { useState } from "react";
 import { RatingBlock } from "@/components/RatingBlock";
 import { Poster } from "@/components/ui/Poster";
-import type { MovieDetail } from "@/lib/catalog-types";
+import type { MovieDetail } from "@/apis/types/catalog-types";
 import { langBadges, stripHtml, typeLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -54,11 +54,7 @@ export function MovieDetailPanel({
     <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
       <div className="w-48 max-w-[120px] overflow-hidden rounded lg:w-full">
         <div className="aspect-[2/3]">
-          <Poster
-            src={movie.posterUrl}
-            alt={movie.name}
-            label={movie.name}
-          />
+          <Poster src={movie.posterUrl} alt={movie.name} label={movie.name} />
         </div>
       </div>
 
@@ -113,10 +109,7 @@ export function MovieDetailPanel({
 
         <dl className="space-y-1.5 text-sm">
           {movie.directors.length > 0 && (
-            <InfoRow
-              label="Đạo diễn"
-              value={movie.directors.join(", ")}
-            />
+            <InfoRow label="Đạo diễn" value={movie.directors.join(", ")} />
           )}
           {movie.actors.length > 0 && (
             <InfoRow label="Diễn viên" value={movie.actors.join(", ")} />
@@ -127,12 +120,8 @@ export function MovieDetailPanel({
               value={movie.countries.map((c) => c.name).join(", ")}
             />
           )}
-          {movie.time && (
-            <InfoRow label="Thời lượng" value={movie.time} />
-          )}
-          {movie.status && (
-            <InfoRow label="Trạng thái" value={movie.status} />
-          )}
+          {movie.time && <InfoRow label="Thời lượng" value={movie.time} />}
+          {movie.status && <InfoRow label="Trạng thái" value={movie.status} />}
         </dl>
       </div>
 

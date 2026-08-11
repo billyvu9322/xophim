@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { GuestProgressItem, GuestWatchlistItem } from "./auth-types";
+import type {
+  GuestProgressItem,
+  GuestWatchlistItem,
+} from "../apis/types/auth-types";
 
 interface GuestState {
   watchlist: GuestWatchlistItem[];
@@ -22,19 +25,25 @@ export const useGuestStore = create<GuestState>()(
       progress: [],
 
       addToWatchlist: (item) => {
-        const existing = get().watchlist.find((w) => w.movieSlug === item.movieSlug);
+        const existing = get().watchlist.find(
+          (w) => w.movieSlug === item.movieSlug,
+        );
         if (existing) return;
         set((s) => ({ watchlist: [...s.watchlist, item] }));
       },
 
       removeFromWatchlist: (movieSlug) => {
-        set((s) => ({ watchlist: s.watchlist.filter((w) => w.movieSlug !== movieSlug) }));
+        set((s) => ({
+          watchlist: s.watchlist.filter((w) => w.movieSlug !== movieSlug),
+        }));
       },
 
       upsertProgress: (item) => {
         set((s) => {
           const idx = s.progress.findIndex(
-            (p) => p.movieSlug === item.movieSlug && p.episodeSlug === item.episodeSlug,
+            (p) =>
+              p.movieSlug === item.movieSlug &&
+              p.episodeSlug === item.episodeSlug,
           );
           if (idx === -1) {
             return { progress: [...s.progress, item] };
@@ -51,7 +60,9 @@ export const useGuestStore = create<GuestState>()(
       },
 
       removeProgress: (movieSlug) => {
-        set((s) => ({ progress: s.progress.filter((p) => p.movieSlug !== movieSlug) }));
+        set((s) => ({
+          progress: s.progress.filter((p) => p.movieSlug !== movieSlug),
+        }));
       },
 
       clear: () => set({ watchlist: [], progress: [] }),

@@ -4,7 +4,7 @@ import { InfiniteMovieGrid } from "@/components/InfiniteMovieGrid";
 import { ErrorState, EmptyState } from "@/components/ui/states";
 import { MovieGridSkeleton } from "@/components/ui/skeletons";
 import { useInfiniteMovieList } from "@/hooks/catalog";
-import type { ListParams } from "@/lib/catalog-api";
+import type { ListParams } from "@/apis/catalog-api";
 
 // Map URL type slug → Vietnamese display title
 const TYPE_LABELS: Record<string, string> = {

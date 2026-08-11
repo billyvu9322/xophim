@@ -4,7 +4,7 @@ import { AuthCard } from "@/components/AuthCard";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { Button } from "@/components/ui/Button";
 import { useRegister, useLoginWithGoogle, useMergeGuest } from "@/hooks/auth";
-import { useGuestStore } from "@/lib/guest-store";
+import { useGuestStore } from "@/stores/guest-store";
 import { PasswordInput } from "./PasswordInput";
 
 export function RegisterForm() {
@@ -53,8 +53,8 @@ export function RegisterForm() {
       void navigate({ to: "/" });
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Đăng ký thất bại";
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ?? "Đăng ký thất bại";
       setError(message);
     }
   }
@@ -138,9 +138,7 @@ export function RegisterForm() {
         </div>
 
         {/* Inline server error */}
-        {error !== null && (
-          <p className="text-[#FC887B] text-sm">{error}</p>
-        )}
+        {error !== null && <p className="text-[#FC887B] text-sm">{error}</p>}
 
         {/* Submit */}
         <Button

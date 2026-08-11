@@ -4,7 +4,7 @@ import { InfiniteMovieGrid } from "@/components/InfiniteMovieGrid";
 import { ErrorState, EmptyState } from "@/components/ui/states";
 import { MovieGridSkeleton } from "@/components/ui/skeletons";
 import { useInfiniteSearch } from "@/hooks/catalog";
-import type { ListParams } from "@/lib/catalog-api";
+import type { ListParams } from "@/apis/catalog-api";
 
 export function SearchPage() {
   const { keyword = "" } = useRouterSearch({ from: "/search" }) as {

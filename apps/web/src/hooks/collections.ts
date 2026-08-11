@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { collectionsApi } from "../lib/collections-api";
-import type { CollectionItemInput, CollectionWriteInput } from "../lib/collections-types";
+import { collectionsApi } from "@/apis/collections-api";
+import type {
+  CollectionItemInput,
+  CollectionWriteInput,
+} from "../apis/types/collections-types";
 
 export const collectionsKeys = {
   all: ["collections"] as const,
@@ -38,7 +41,10 @@ export const useUpsertCollection = () => {
       body: CollectionWriteInput | Partial<CollectionWriteInput>;
     }) =>
       id
-        ? collectionsApi.updateCollection(id, body as Partial<CollectionWriteInput>)
+        ? collectionsApi.updateCollection(
+            id,
+            body as Partial<CollectionWriteInput>,
+          )
         : collectionsApi.createCollection(body as CollectionWriteInput),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collectionsKeys.all });
@@ -78,8 +84,13 @@ export const useUpsertCollectionItem = () => {
 export const useRemoveCollectionItem = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ collectionId, movieSlug }: { collectionId: string; movieSlug: string }) =>
-      collectionsApi.removeItem(collectionId, movieSlug),
+    mutationFn: ({
+      collectionId,
+      movieSlug,
+    }: {
+      collectionId: string;
+      movieSlug: string;
+    }) => collectionsApi.removeItem(collectionId, movieSlug),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["collections", "detail"] });
     },

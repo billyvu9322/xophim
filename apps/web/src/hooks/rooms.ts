@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { roomsApi } from "../lib/rooms-api";
+import { roomsApi } from "@/apis/rooms-api";
 
 // Create a watch-party room (host = current user). Requires auth server-side.
 export function useCreateRoom() {

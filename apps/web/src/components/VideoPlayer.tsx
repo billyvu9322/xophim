@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { cleanupPlaylist } from "@/lib/playlist-api";
+import { cleanupPlaylist } from "@/apis/playlist-api";
 
 const ENABLE_PLAYLIST_CLEANUP =
   import.meta.env.VITE_ENABLE_PLAYLIST_CLEANUP === "true";

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "./ui/Button";
 import { useReport } from "@/hooks/community";
-import type { ReportReason } from "@/lib/community-types";
+import type { ReportReason } from "@/apis/types/community-types";
 import { cn } from "@/lib/utils";
 
 const REASONS: { value: ReportReason; label: string }[] = [
@@ -51,7 +51,11 @@ export function ReportDialog({
       >
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-white">Báo lỗi phim</h3>
-          <button onClick={onClose} aria-label="Đóng" className="text-muted hover:text-white">
+          <button
+            onClick={onClose}
+            aria-label="Đóng"
+            className="text-muted hover:text-white"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -63,7 +67,9 @@ export function ReportDialog({
               onClick={() => setReason(r.value)}
               className={cn(
                 "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm",
-                reason === r.value ? "bg-gold text-[#111]" : "bg-elevated text-silver hover:text-white",
+                reason === r.value
+                  ? "bg-gold text-[#111]"
+                  : "bg-elevated text-silver hover:text-white",
               )}
             >
               {r.label}

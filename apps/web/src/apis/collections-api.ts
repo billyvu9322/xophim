@@ -4,7 +4,7 @@ import type {
   CollectionDetail,
   CollectionItemInput,
   CollectionWriteInput,
-} from "./collections-types";
+} from "./types/collections-types";
 
 const get = async <T>(url: string): Promise<T> => (await api.get<T>(url)).data;
 const post = async <T>(url: string, data: unknown): Promise<T> =>
@@ -23,12 +23,20 @@ export const collectionsApi = {
   detail: (slug: string) => get<CollectionDetail>(`/collections/${slug}`),
 
   // Admin — server enforces role === 'admin'.
-  createCollection: (body: CollectionWriteInput) => post<{ id: string }>("/collections", body),
+  createCollection: (body: CollectionWriteInput) =>
+    post<{ id: string }>("/collections", body),
   updateCollection: (id: string, body: Partial<CollectionWriteInput>) =>
     patch<{ id: string }>(`/collections/${id}`, body),
   deleteCollection: (id: string) => del(`/collections/${id}`),
-  upsertItem: (collectionId: string, movieSlug: string, body: CollectionItemInput) =>
-    put<{ ok: boolean }>(`/collections/${collectionId}/items/${movieSlug}`, body),
+  upsertItem: (
+    collectionId: string,
+    movieSlug: string,
+    body: CollectionItemInput,
+  ) =>
+    put<{ ok: boolean }>(
+      `/collections/${collectionId}/items/${movieSlug}`,
+      body,
+    ),
   removeItem: (collectionId: string, movieSlug: string) =>
     del(`/collections/${collectionId}/items/${movieSlug}`),
 };

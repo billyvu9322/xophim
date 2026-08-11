@@ -6,7 +6,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import type { Swiper as SwiperInstance } from "swiper";
 import { Button } from "@/components/ui/Button";
 import { useMovieDetail } from "@/hooks/catalog";
-import type { Movie } from "@/lib/catalog-types";
+import type { Movie } from "@/apis/types/catalog-types";
 import { langBadges, stripHtml } from "@/lib/format";
 import { cn } from "@/lib/utils";
 

@@ -6,7 +6,7 @@ import { VideoPlayer, type VideoPlayerHandle } from "@/components/VideoPlayer";
 import { Button } from "@/components/ui/Button";
 import { useMovieDetail } from "@/hooks/catalog";
 import { useWatchParty } from "@/hooks/watch-party";
-import type { MovieDetail } from "@/lib/catalog-types";
+import type { MovieDetail } from "@/apis/types/catalog-types";
 import { timeAgo } from "@/lib/format";
 
 export function findStream(

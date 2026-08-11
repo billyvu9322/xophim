@@ -6,7 +6,7 @@ import type {
   SaveProgressPayload,
   WatchlistItem,
   WatchlistResponse,
-} from "./user-state-types";
+} from "./types/user-state-types";
 
 // All functions call /v1/me/* which requires auth (session cookie).
 // api.ts sets withCredentials: true, so the sid cookie rides along.
@@ -16,8 +16,13 @@ export const userStateApi = {
     return res.data;
   },
 
-  addToWatchlist: async (slug: string, movie_snapshot: MovieSnapshot): Promise<WatchlistItem> => {
-    const res = await api.put<WatchlistItem>(`/me/watchlist/${slug}`, { movie_snapshot });
+  addToWatchlist: async (
+    slug: string,
+    movie_snapshot: MovieSnapshot,
+  ): Promise<WatchlistItem> => {
+    const res = await api.put<WatchlistItem>(`/me/watchlist/${slug}`, {
+      movie_snapshot,
+    });
     return res.data;
   },
 

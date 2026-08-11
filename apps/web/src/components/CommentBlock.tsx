@@ -10,7 +10,7 @@ import {
   useLikeComment,
   usePostComment,
 } from "@/hooks/community";
-import type { Comment, CommentReply } from "@/lib/community-types";
+import type { Comment, CommentReply } from "@/apis/types/community-types";
 import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 

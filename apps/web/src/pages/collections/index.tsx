@@ -4,7 +4,7 @@ import { useCollections } from "@/hooks/collections";
 import { ErrorState, EmptyState } from "@/components/ui/states";
 import { CollectionsSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
-import type { Collection } from "@/lib/collections-types";
+import type { Collection } from "@/apis/types/collections-types";
 
 function CollectionCard({ c }: { c: Collection }) {
   return (

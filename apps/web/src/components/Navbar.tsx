@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { Logo } from "./ui/Logo";
 import { useAuth, useLogout } from "@/hooks/auth";
 import { useSearch as useCatalogSearch } from "@/hooks/catalog";
-import type { Movie } from "@/lib/catalog-types";
+import type { Movie } from "@/apis/types/catalog-types";
 import { DotLoading } from "./ui/DotLoading";
 
 // Explicit Links (not a mapped array) so TanStack Router's typed `to`/`params`

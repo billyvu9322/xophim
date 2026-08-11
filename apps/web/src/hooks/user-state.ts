@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./auth";
-import { userStateApi } from "../lib/user-state-api";
-import { useGuestStore } from "../lib/guest-store";
+import { userStateApi } from "@/apis/user-state-api";
+import { useGuestStore } from "../stores/guest-store";
 import type {
   MovieSnapshot,
   ProgressItem,
   SaveProgressPayload,
   WatchlistItem,
-} from "../lib/user-state-types";
+} from "../apis/types/user-state-types";
 
 export const userStateKeys = {
   watchlist: ["user-state", "watchlist"] as const,
@@ -16,7 +16,9 @@ export const userStateKeys = {
 
 // Throttle helper — exported so the player can gate saves (~15s / on pause).
 const PROGRESS_THROTTLE_MS = 15_000;
-export function shouldThrottleProgressSave(lastSavedAt: number | null): boolean {
+export function shouldThrottleProgressSave(
+  lastSavedAt: number | null,
+): boolean {
   if (lastSavedAt === null) return false;
   return Date.now() - lastSavedAt < PROGRESS_THROTTLE_MS;
 }
@@ -84,20 +86,25 @@ export function useToggleWatchlist() {
     },
     onMutate: async ({ slug, snapshot, currentlyInWatchlist }) => {
       await qc.cancelQueries({ queryKey: userStateKeys.watchlist });
-      const previous = qc.getQueryData<{ items: WatchlistItem[] }>(userStateKeys.watchlist);
-      qc.setQueryData<{ items: WatchlistItem[] }>(userStateKeys.watchlist, (old) => {
-        const items = old?.items ?? [];
-        if (currentlyInWatchlist) {
-          return { items: items.filter((i) => i.movie_slug !== slug) };
-        }
-        const optimistic: WatchlistItem = {
-          id: `optimistic-${slug}`,
-          movie_slug: slug,
-          movie_snapshot: snapshot,
-          created_at: new Date().toISOString(),
-        };
-        return { items: [optimistic, ...items] };
-      });
+      const previous = qc.getQueryData<{ items: WatchlistItem[] }>(
+        userStateKeys.watchlist,
+      );
+      qc.setQueryData<{ items: WatchlistItem[] }>(
+        userStateKeys.watchlist,
+        (old) => {
+          const items = old?.items ?? [];
+          if (currentlyInWatchlist) {
+            return { items: items.filter((i) => i.movie_slug !== slug) };
+          }
+          const optimistic: WatchlistItem = {
+            id: `optimistic-${slug}`,
+            movie_slug: slug,
+            movie_snapshot: snapshot,
+            created_at: new Date().toISOString(),
+          };
+          return { items: [optimistic, ...items] };
+        },
+      );
       return { previous };
     },
     onError: (_err, _vars, context) => {
@@ -111,13 +118,21 @@ export function useToggleWatchlist() {
   });
 
   return {
-    toggle: (slug: string, snapshot: MovieSnapshot, currentlyInWatchlist: boolean) => {
+    toggle: (
+      slug: string,
+      snapshot: MovieSnapshot,
+      currentlyInWatchlist: boolean,
+    ) => {
       if (user) {
         serverMutation.mutate({ slug, snapshot, currentlyInWatchlist });
       } else if (currentlyInWatchlist) {
         removeGuest(slug);
       } else {
-        addGuest({ movieSlug: slug, movieSnapshot: asRecord(snapshot), createdAt: new Date().toISOString() });
+        addGuest({
+          movieSlug: slug,
+          movieSnapshot: asRecord(snapshot),
+          createdAt: new Date().toISOString(),
+        });
       }
     },
     isPending: serverMutation.isPending,
@@ -172,11 +187,16 @@ export function useDeleteHistory() {
     mutationFn: (slug: string) => userStateApi.deleteHistory(slug),
     onMutate: async (slug) => {
       await qc.cancelQueries({ queryKey: userStateKeys.history });
-      const previous = qc.getQueryData<{ items: ProgressItem[] }>(userStateKeys.history);
+      const previous = qc.getQueryData<{ items: ProgressItem[] }>(
+        userStateKeys.history,
+      );
 
-      qc.setQueryData<{ items: ProgressItem[] }>(userStateKeys.history, (old) => ({
-        items: (old?.items ?? []).filter((item) => item.movie_slug !== slug),
-      }));
+      qc.setQueryData<{ items: ProgressItem[] }>(
+        userStateKeys.history,
+        (old) => ({
+          items: (old?.items ?? []).filter((item) => item.movie_slug !== slug),
+        }),
+      );
 
       return { previous };
     },
@@ -213,7 +233,8 @@ export function useSaveProgress() {
   const upsertGuest = useGuestStore((s) => s.upsertProgress);
 
   const serverMutation = useMutation({
-    mutationFn: (payload: SaveProgressPayload) => userStateApi.saveProgress(payload),
+    mutationFn: (payload: SaveProgressPayload) =>
+      userStateApi.saveProgress(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: userStateKeys.history });
     },

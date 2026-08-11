@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { authApi } from "../lib/auth-api";
-import { useGuestStore } from "../lib/guest-store";
+import { authApi } from "@/apis/auth-api";
+import { useGuestStore } from "../stores/guest-store";
 import type {
   LoginPayload,
   MergeGuestPayload,
   RegisterPayload,
   UpdateProfilePayload,
-} from "../lib/auth-types";
+} from "../apis/types/auth-types";
 
 export const authKeys = {
   me: ["auth", "me"] as const,
@@ -61,7 +61,8 @@ export function useLogout() {
 export function useUpdateProfile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateProfilePayload) => authApi.updateProfile(payload),
+    mutationFn: (payload: UpdateProfilePayload) =>
+      authApi.updateProfile(payload),
     onSuccess: (user) => {
       qc.setQueryData(authKeys.me, user);
     },

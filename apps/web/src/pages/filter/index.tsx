@@ -10,7 +10,7 @@ import {
 import { ErrorState, EmptyState } from "@/components/ui/states";
 import { MovieGridSkeleton } from "@/components/ui/skeletons";
 import { useMovieList, useFilters } from "@/hooks/catalog";
-import type { ListParams } from "@/lib/catalog-api";
+import type { ListParams } from "@/apis/catalog-api";
 
 // The dedicated filter page keeps its whole state in the URL so results are
 // shareable and survive reload / back. Multi-selects are stored comma-joined.
