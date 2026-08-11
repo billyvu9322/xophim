@@ -10,6 +10,10 @@ export function ContinueWatching() {
   const { items: history } = useHistory();
   const deleteHistory = useDeleteHistory();
   const [swiper, setSwiper] = useState<SwiperInstance | null>(null);
+  // Hide nav buttons when every slide already fits (no overflow). Swiper's
+  // watchOverflow (on by default) flips isLocked in that case.
+  const [showNav, setShowNav] = useState(false);
+  const syncNav = (s: SwiperInstance) => setShowNav(!s.isLocked);
 
   // Continue-watching = ONE card per movie (the most recently watched episode).
   // History has a row per (movie, episode); dedupe by slug keeping the latest so
@@ -41,24 +45,26 @@ export function ContinueWatching() {
     <section className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">Xem Tiếp</h2>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="Cuộn phim sang trái"
-            onClick={() => swiper?.slidePrev()}
-            className="hidden rounded-full bg-elevated p-2 text-silver transition-colors hover:bg-chip hover:text-white sm:grid"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Cuộn phim sang phải"
-            onClick={() => swiper?.slideNext()}
-            className="hidden rounded-full bg-elevated p-2 text-silver transition-colors hover:bg-chip hover:text-white sm:grid"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+        {showNav && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="Cuộn phim sang trái"
+              onClick={() => swiper?.slidePrev()}
+              className="hidden rounded-full bg-elevated p-2 text-silver transition-colors hover:bg-chip hover:text-white sm:grid"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Cuộn phim sang phải"
+              onClick={() => swiper?.slideNext()}
+              className="hidden rounded-full bg-elevated p-2 text-silver transition-colors hover:bg-chip hover:text-white sm:grid"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
       <Swiper
         slidesPerView="auto"
@@ -66,7 +72,14 @@ export function ContinueWatching() {
         speed={450}
         grabCursor
         className="pb-2"
-        onSwiper={setSwiper}
+        onSwiper={(s) => {
+          setSwiper(s);
+          syncNav(s);
+        }}
+        onResize={syncNav}
+        onBreakpoint={syncNav}
+        onLock={syncNav}
+        onUnlock={syncNav}
       >
         {continueWatching.map((m) => (
           <SwiperSlide key={m.slug} className="!w-[140px] sm:!w-[160px]">
