@@ -18,8 +18,7 @@ const ENABLE_PLAYLIST_CLEANUP =
 // so it can't run hls.js — it MUST use native HLS on the raw .m3u8 URL. Gate
 // cleanup on real MSE support so iOS falls back to the playable raw stream
 // instead of a blob it can never decode.
-const SUPPORTS_MSE =
-  typeof window !== "undefined" && "MediaSource" in window;
+const SUPPORTS_MSE = typeof window !== "undefined" && "MediaSource" in window;
 
 const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2] as const;
 
@@ -341,6 +340,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const hideTimerRef = useRef<ReturnType<typeof setTimeout>>();
     const seekingRef = useRef(false);
     const seekPreviewRef = useRef<number | null>(null);
+    const resumeSeekTimerRef = useRef<ReturnType<typeof setTimeout>>();
     const lastPointerTypeRef = useRef<string | null>(null);
     const skipNextClickRef = useRef(false);
 
@@ -393,11 +393,18 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     useEffect(() => {
       appliedStartAtRef.current = null;
       hasPlaybackProgressRef.current = false;
+      clearTimeout(resumeSeekTimerRef.current);
       setPlaying(autoPlay);
       setMuted(autoPlay);
     }, [autoPlay, src]);
 
     useEffect(() => {
+      appliedStartAtRef.current = null;
+      hasPlaybackProgressRef.current = false;
+      clearTimeout(resumeSeekTimerRef.current);
+    }, [playbackSrc]);
+
+    const applyStartAt = useCallback(() => {
       if (
         appliedStartAtRef.current === startAt ||
         hasPlaybackProgressRef.current ||
@@ -410,8 +417,37 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         return;
       }
       playerRef.current?.seekTo(startAt, "seconds");
-      appliedStartAtRef.current = startAt;
+      setPlayed(startAt);
+      clearTimeout(resumeSeekTimerRef.current);
+      resumeSeekTimerRef.current = setTimeout(() => {
+        const next = playerRef.current?.getCurrentTime() ?? 0;
+        if (Math.abs(next - startAt) <= 2) {
+          appliedStartAtRef.current = startAt;
+          return;
+        }
+        playerRef.current?.seekTo(startAt, "seconds");
+        setPlayed(startAt);
+        appliedStartAtRef.current = startAt;
+      }, 350);
     }, [startAt]);
+
+    useEffect(() => {
+      applyStartAt();
+      return () => clearTimeout(resumeSeekTimerRef.current);
+    }, [applyStartAt, playbackSrc]);
+
+    useEffect(() => {
+      if (appliedStartAtRef.current !== startAt) return;
+      const current = playerRef.current?.getCurrentTime() ?? 0;
+      if (startAt > 0 && !hasPlaybackProgressRef.current && current < 2) {
+        appliedStartAtRef.current = null;
+        applyStartAt();
+      }
+    }, [applyStartAt, startAt]);
+
+    useEffect(() => {
+      return () => clearTimeout(resumeSeekTimerRef.current);
+    }, []);
 
     useImperativeHandle(ref, () => ({
       play: () => setPlaying(true),
@@ -621,24 +657,51 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   default: {
                     maxTimeToFirstByteMs: 10_000,
                     maxLoadTimeMs: 20_000,
-                    timeoutRetry: { maxNumRetry: 2, retryDelayMs: 0, maxRetryDelayMs: 0 },
-                    errorRetry: { maxNumRetry: 2, retryDelayMs: 1000, maxRetryDelayMs: 8000, backoff: "linear" },
+                    timeoutRetry: {
+                      maxNumRetry: 2,
+                      retryDelayMs: 0,
+                      maxRetryDelayMs: 0,
+                    },
+                    errorRetry: {
+                      maxNumRetry: 2,
+                      retryDelayMs: 1000,
+                      maxRetryDelayMs: 8000,
+                      backoff: "linear",
+                    },
                   },
                 },
                 playlistLoadPolicy: {
                   default: {
                     maxTimeToFirstByteMs: 10_000,
                     maxLoadTimeMs: 20_000,
-                    timeoutRetry: { maxNumRetry: 2, retryDelayMs: 0, maxRetryDelayMs: 0 },
-                    errorRetry: { maxNumRetry: 4, retryDelayMs: 1000, maxRetryDelayMs: 8000, backoff: "linear" },
+                    timeoutRetry: {
+                      maxNumRetry: 2,
+                      retryDelayMs: 0,
+                      maxRetryDelayMs: 0,
+                    },
+                    errorRetry: {
+                      maxNumRetry: 4,
+                      retryDelayMs: 1000,
+                      maxRetryDelayMs: 8000,
+                      backoff: "linear",
+                    },
                   },
                 },
                 fragLoadPolicy: {
                   default: {
                     maxTimeToFirstByteMs: 9_000,
                     maxLoadTimeMs: 60_000,
-                    timeoutRetry: { maxNumRetry: 2, retryDelayMs: 0, maxRetryDelayMs: 0 },
-                    errorRetry: { maxNumRetry: 6, retryDelayMs: 500, maxRetryDelayMs: 8000, backoff: "linear" },
+                    timeoutRetry: {
+                      maxNumRetry: 2,
+                      retryDelayMs: 0,
+                      maxRetryDelayMs: 0,
+                    },
+                    errorRetry: {
+                      maxNumRetry: 6,
+                      retryDelayMs: 500,
+                      maxRetryDelayMs: 8000,
+                      backoff: "linear",
+                    },
                   },
                 },
               },
@@ -651,10 +714,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             },
           }}
           onReady={() => {
-            if (appliedStartAtRef.current !== startAt && startAt > 0) {
-              playerRef.current?.seekTo(startAt, "seconds");
-              appliedStartAtRef.current = startAt;
-            }
+            applyStartAt();
           }}
           onBuffer={() => setBuffering(true)}
           onBufferEnd={() => setBuffering(false)}
@@ -694,7 +754,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         {/* Center play affordance — shown when paused / not yet started. Just a
             small (~50px) rounded play triangle. Visual only
             (pointer-events-none): the container's onClick handles play. */}
-        {!playing && !buffering && (
+        {/* {!playing && !buffering && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <svg
               viewBox="0 0 24 24"
@@ -709,7 +769,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               <path d="M10 8.2l5.5 3.8-5.5 3.8z" />
             </svg>
           </div>
-        )}
+        )} */}
 
         {/* Bottom gradient — fades from transparent to black, tall enough
             to sit under subtitles without covering them, and only shows

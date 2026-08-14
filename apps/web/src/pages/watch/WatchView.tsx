@@ -59,9 +59,18 @@ export function WatchView({
 
   // Episode + server come from the URL (?tap=&sv=) so a reload restores them.
   const search = useSearch({ from: "/xem/$slug" });
-  const [serverIdx, setServerIdx] = useState(() => {
+  const initialServerIdx = (() => {
     const sv = search.sv ?? 0;
+    if (search.tap) {
+      const tapServerIdx = servers.findIndex((server) =>
+        server.items.some((episode) => episode.slug === search.tap),
+      );
+      if (tapServerIdx >= 0) return tapServerIdx;
+    }
     return sv >= 0 && sv < servers.length ? sv : 0;
+  })();
+  const [serverIdx, setServerIdx] = useState(() => {
+    return initialServerIdx;
   });
   const currentServer: EpisodeServer | undefined = servers[serverIdx];
   const items = currentServer?.items ?? [];
