@@ -238,7 +238,7 @@ function SearchBox({ onNavigate }: { onNavigate?: () => void }) {
     setOpen(false);
     onNavigate?.();
     void navigate({
-      to: "/loc",
+      to: "/filter",
       search: {
         type: "phim-moi",
         country: "",

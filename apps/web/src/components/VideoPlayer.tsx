@@ -348,6 +348,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const [playbackSrc, setPlaybackSrc] = useState(src);
     const [played, setPlayed] = useState(0);
     const [duration, setDuration] = useState(0);
+    const [buffered, setBuffered] = useState(0);
     const [seekPreview, setSeekPreview] = useState<number | null>(null);
     const [volume, setVolume] = useState(1);
     const [playbackRate, setPlaybackRate] = useState(1);
@@ -636,14 +637,14 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               // hls.js can't run) plays via its NATIVE HLS engine.
               forceHLS: playbackSrc.startsWith("blob:"),
               hlsOptions: {
-                enableWorker: true,
+                enableWorker: false,
                 lowLatencyMode: false,
-                startFragPrefetch: true,
+                startFragPrefetch: false,
                 capLevelToPlayerSize: true,
                 capLevelOnFPSDrop: true,
-                backBufferLength: 30,
-                maxBufferLength: 60,
-                maxMaxBufferLength: 120,
+                backBufferLength: 15,
+                maxBufferLength: 30,
+                maxMaxBufferLength: 60,
                 maxBufferSize: 80 * 1000 * 1000,
                 // Faster start: skip the low-level "bandwidth probe" fragment and
                 // pick an initial level from a realistic estimate (~1.5 Mbps)
@@ -725,6 +726,21 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           onProgress={({ playedSeconds }) => {
             if (playedSeconds > 3) hasPlaybackProgressRef.current = true;
             if (!seekingRef.current) setPlayed(playedSeconds);
+            const internal = playerRef.current?.getInternalPlayer() as
+              | HTMLVideoElement
+              | undefined;
+            const ranges = internal?.buffered;
+            if (ranges?.length) {
+              const current = internal?.currentTime ?? playedSeconds;
+              let end = ranges.end(ranges.length - 1);
+              for (let i = 0; i < ranges.length; i += 1) {
+                if (ranges.start(i) <= current && current <= ranges.end(i)) {
+                  end = ranges.end(i);
+                  break;
+                }
+              }
+              setBuffered(end);
+            }
             const playerDuration = playerRef.current?.getDuration() ?? 0;
             const d =
               durationRef.current ||
@@ -818,6 +834,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             style={{
               backgroundImage: `linear-gradient(to right, #ef4444 ${
                 duration ? ((seekPreview ?? played) / duration) * 100 : 0
+              }%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.55) ${
+                duration ? Math.min(100, (buffered / duration) * 100) : 0
               }%, rgba(255,255,255,0.25) 0%)`,
             }}
           />

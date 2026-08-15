@@ -17,6 +17,7 @@ import { CollectionsPage } from "../pages/collections";
 import { CollectionDetailPage } from "../pages/collection-detail";
 import { RoomPage } from "../pages/room";
 import { ProfilePage } from "../pages/profile";
+import { AnalysisPage } from "../pages/analysis";
 
 const rootRoute = createRootRoute({ component: RootLayout });
 
@@ -34,7 +35,7 @@ const browseRoute = createRoute({
 
 const filterRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/loc",
+  path: "/filter",
   validateSearch: validateFilterSearch,
   component: FilterPage,
 });
@@ -111,6 +112,12 @@ const profileRoute = createRoute({
   component: ProfilePage,
 });
 
+const analysisRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard/analysis",
+  component: AnalysisPage,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   browseRoute,
@@ -125,6 +132,7 @@ const routeTree = rootRoute.addChildren([
   collectionDetailRoute,
   roomRoute,
   profileRoute,
+  analysisRoute,
 ]);
 
 export const router = createRouter({ routeTree });

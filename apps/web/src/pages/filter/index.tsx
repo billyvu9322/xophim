@@ -38,7 +38,7 @@ export function validateFilterSearch(s: Record<string, unknown>): FilterSearch {
 }
 
 export function FilterPage() {
-  const search = useSearch({ from: "/loc" });
+  const search = useSearch({ from: "/filter" });
   const navigate = useNavigate();
   const { data: filters } = useFilters();
 
@@ -94,7 +94,7 @@ export function FilterPage() {
   // Applying filters resets to page 1; paging keeps the rest of the search.
   function onApply(v: FilterValue) {
     void navigate({
-      to: "/loc",
+      to: "/filter",
       search: {
         type: v.type,
         country: v.country.join(","),
@@ -108,7 +108,7 @@ export function FilterPage() {
   }
 
   function goPage(p: number) {
-    void navigate({ to: "/loc", search: { ...search, page: p } });
+    void navigate({ to: "/filter", search: { ...search, page: p } });
     window.scrollTo({ top: 0 });
   }
 

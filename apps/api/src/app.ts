@@ -50,7 +50,11 @@ export async function buildApp(): Promise<FastifyInstance> {
     contentSecurityPolicy: false,
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
   });
-  await app.register(cors, { origin: env.CORS_ORIGIN, credentials: true });
+  await app.register(cors, {
+    origin: env.CORS_ORIGIN,
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "x-analysis-password"],
+  });
   await app.register(cookie);
   await app.register(rateLimit, { max: 100, timeWindow: "1 minute" });
   // WebSocket support for Watch Party rooms (Phase 6). Must be registered

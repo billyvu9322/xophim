@@ -76,6 +76,9 @@ const envSchema = z.object({
 
   // Where to redirect after the OAuth callback (the web origin).
   WEB_ORIGIN: z.string().url().default("http://localhost:5173"),
+
+  // Password gate for the private analysis dashboard. Override in production.
+  DASHBOARD_ANALYSIS_PASSWORD: z.string().min(8).default("binhhp20"),
 });
 
 const parsed = envSchema.safeParse(process.env);
