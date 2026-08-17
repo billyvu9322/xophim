@@ -1,4 +1,8 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+} from "@tanstack/react-query";
 import { catalogApi, type ListParams } from "@/apis/catalog-api";
 
 export const catalogKeys = {
@@ -30,6 +34,9 @@ export const useMovieList = (type: string, params: ListParams) =>
     queryKey: catalogKeys.list(type, params),
     queryFn: () => catalogApi.list(type, params),
     staleTime: FIVE_MIN,
+    // Keep the previous page's results on screen while the next page loads, so
+    // paging/filtering holds the grid instead of flashing a skeleton.
+    placeholderData: keepPreviousData,
   });
 
 export const useInfiniteMovieList = (type: string, params: Omit<ListParams, "page">) =>
@@ -42,6 +49,24 @@ export const useInfiniteMovieList = (type: string, params: Omit<ListParams, "pag
         ? lastPage.pagination.page + 1
         : undefined,
     staleTime: FIVE_MIN,
+    placeholderData: keepPreviousData,
+  });
+
+export const useInfiniteCountryList = (
+  slug: string,
+  params: Omit<ListParams, "page">,
+) =>
+  useInfiniteQuery({
+    queryKey: catalogKeys.country(slug, params),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      catalogApi.country(slug, { ...params, page: pageParam }),
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.page < lastPage.pagination.totalPages
+        ? lastPage.pagination.page + 1
+        : undefined,
+    staleTime: FIVE_MIN,
+    placeholderData: keepPreviousData,
   });
 
 export const useSearch = (keyword: string, params: ListParams) =>
@@ -50,6 +75,7 @@ export const useSearch = (keyword: string, params: ListParams) =>
     queryFn: () => catalogApi.search(keyword, params),
     enabled: keyword.trim().length > 0,
     staleTime: FIVE_MIN,
+    placeholderData: keepPreviousData,
   });
 
 export const useInfiniteSearch = (keyword: string, params: Omit<ListParams, "page">) =>
@@ -63,6 +89,7 @@ export const useInfiniteSearch = (keyword: string, params: Omit<ListParams, "pag
         ? lastPage.pagination.page + 1
         : undefined,
     staleTime: FIVE_MIN,
+    placeholderData: keepPreviousData,
   });
 
 export const useFilters = () =>

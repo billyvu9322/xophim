@@ -79,6 +79,32 @@ export function HomePage() {
                 </Link>
               }
             />
+            <MovieRail
+              title="Phim Hàn Quốc"
+              movies={data.phimHan}
+              action={
+                <Link
+                  to="/quoc-gia/$slug"
+                  params={{ slug: "han-quoc" }}
+                  className="flex items-center text-sm text-muted hover:text-gold"
+                >
+                  Xem tất cả <ChevronRight className="h-4 w-4" />
+                </Link>
+              }
+            />
+            <MovieRail
+              title="Phim Trung Quốc"
+              movies={data.phimTrung}
+              action={
+                <Link
+                  to="/quoc-gia/$slug"
+                  params={{ slug: "trung-quoc" }}
+                  className="flex items-center text-sm text-muted hover:text-gold"
+                >
+                  Xem tất cả <ChevronRight className="h-4 w-4" />
+                </Link>
+              }
+            />
           </div>
 
           {/* right Top 10 sidebar */}

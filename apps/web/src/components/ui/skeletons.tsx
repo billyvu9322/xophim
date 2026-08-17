@@ -3,8 +3,15 @@ import { cn } from "@/lib/utils";
 // Skeleton loaders that mirror each page's real layout so the first-load shift
 // is minimal. Copy-free (no text) — pure shape placeholders with a subtle pulse.
 
+// Base placeholder block. A light band sweeps across it (shimmer) — a softer,
+// more premium cue than an opacity pulse. Sizing/shape comes from `className`;
+// dimensions match the real element so nothing shifts when content arrives.
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded bg-elevated", className)} />;
+  return (
+    <div className={cn("relative overflow-hidden rounded bg-elevated", className)}>
+      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+    </div>
+  );
 }
 
 // A single poster cell (2:3) with a title line — matches MovieCard.

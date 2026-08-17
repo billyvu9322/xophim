@@ -101,18 +101,25 @@ export class CatalogService {
     phimBo: XoMovie[];
     phimLe: XoMovie[];
     hoatHinh: XoMovie[];
+    phimHan: XoMovie[];
+    phimTrung: XoMovie[];
   }> {
-    const [latest, phimBo, phimLe, hoatHinh] = await Promise.all([
-      this.latest(1),
-      this.list("phim-bo", { limit: 12 }),
-      this.list("phim-le", { limit: 12 }),
-      this.list("hoat-hinh", { limit: 12 }),
-    ]);
+    const [latest, phimBo, phimLe, hoatHinh, phimHan, phimTrung] =
+      await Promise.all([
+        this.latest(1),
+        this.list("phim-bo", { limit: 12 }),
+        this.list("phim-le", { limit: 12 }),
+        this.list("hoat-hinh", { limit: 12 }),
+        this.country("han-quoc", { limit: 12 }),
+        this.country("trung-quoc", { limit: 12 }),
+      ]);
     return {
       latest: latest.items,
       phimBo: phimBo.items,
       phimLe: phimLe.items,
       hoatHinh: hoatHinh.items,
+      phimHan: phimHan.items,
+      phimTrung: phimTrung.items,
     };
   }
 }

@@ -55,6 +55,8 @@ export interface HomeData {
   phimBo: Movie[];
   phimLe: Movie[];
   hoatHinh: Movie[];
+  phimHan: Movie[];
+  phimTrung: Movie[];
 }
 export interface DetailData {
   movie: MovieDetail;

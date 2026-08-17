@@ -32,6 +32,15 @@ export default {
       borderRadius: {
         pill: "30px",
       },
+      keyframes: {
+        // Loading shimmer — a light band sweeps left→right across a placeholder.
+        shimmer: {
+          "100%": { transform: "translateX(100%)" },
+        },
+      },
+      animation: {
+        shimmer: "shimmer 1.6s infinite",
+      },
     },
   },
   plugins: [animate],

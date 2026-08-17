@@ -54,6 +54,15 @@ const envSchema = z.object({
   // Absolute path to the built SPA (dist) — set only in the single-image deploy.
   WEB_STATIC_DIR: z.string().optional(),
 
+  // Public canonical origin (no trailing slash) — used to build absolute
+  // canonical/OG/sitemap URLs for SEO. MUST be the real production domain in
+  // prod (e.g. https://xophim.example) or canonical tags point at localhost.
+  SITE_URL: z
+    .string()
+    .url()
+    .default("http://localhost:5173")
+    .transform((v) => v.replace(/\/+$/, "")),
+
   // Comma-separated allow-list of browser origins for CORS.
   CORS_ORIGIN: z
     .string()

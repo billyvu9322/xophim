@@ -5,7 +5,6 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import Fastify, { type FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -16,6 +15,7 @@ import { ZodError } from "zod";
 import { env, type AppEnv } from "./config/env.js";
 import { db, type Database } from "./db/index.js";
 import { registerRoutes } from "./routes.js";
+import { registerSpa } from "./seo/spa.js";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -94,26 +94,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerRoutes, { prefix: "/v1" });
 
   // Single-container image: the API also serves the built SPA when configured.
-  if (env.WEB_STATIC_DIR && existsSync(env.WEB_STATIC_DIR)) {
-    const fastifyStatic = (await import("@fastify/static")).default;
-    await app.register(fastifyStatic, {
-      root: env.WEB_STATIC_DIR,
-      wildcard: false,
-    });
-    // SPA fallback: serve index.html for client routes; keep API/asset 404s clean.
-    app.setNotFoundHandler((request, reply) => {
-      if (
-        request.method === "GET" &&
-        !request.url.startsWith("/v1") &&
-        !request.url.startsWith("/assets/")
-      ) {
-        return reply.sendFile("index.html");
-      }
-      return reply
-        .code(404)
-        .send({ error: "NotFound", message: "Route not found" });
-    });
-  }
+  // registerSpa adds static assets, robots.txt, a dynamic sitemap.xml, and a
+  // SPA fallback that injects per-route SEO <head> metadata into index.html.
+  await registerSpa(app);
 
   return app;
 }

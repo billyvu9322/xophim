@@ -6,6 +6,7 @@ import {
 import { RootLayout } from "../pages/root";
 import { HomePage } from "../pages/home";
 import { BrowsePage } from "../pages/browse";
+import { CountryBrowsePage } from "../pages/country";
 import { SearchPage } from "../pages/search";
 import { FilterPage, validateFilterSearch } from "../pages/filter";
 import { WatchPage } from "../pages/watch";
@@ -31,6 +32,12 @@ const browseRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/list/$type",
   component: BrowsePage,
+});
+
+const countryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/quoc-gia/$slug",
+  component: CountryBrowsePage,
 });
 
 const filterRoute = createRoute({
@@ -121,6 +128,7 @@ const analysisRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   homeRoute,
   browseRoute,
+  countryRoute,
   filterRoute,
   searchRoute,
   watchRoute,

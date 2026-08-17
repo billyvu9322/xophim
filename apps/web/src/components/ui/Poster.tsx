@@ -19,12 +19,14 @@ interface PosterProps {
 export function Poster({ src, alt, label, imgClassName, compact }: PosterProps) {
   const [errored, setErrored] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const showFallback = errored || !src;
 
   useEffect(() => {
     setErrored(false);
     setIsVisible(false);
+    setLoaded(false);
   }, [src]);
 
   useEffect(() => {
@@ -51,10 +53,7 @@ export function Poster({ src, alt, label, imgClassName, compact }: PosterProps) 
 
   if (!showFallback && !isVisible) {
     return (
-      <div
-        ref={rootRef}
-        className="h-full w-full animate-pulse bg-gradient-to-br from-chrome via-elevated to-chrome"
-      />
+      <div ref={rootRef} className="h-full w-full bg-elevated" />
     );
   }
 
@@ -74,14 +73,23 @@ export function Poster({ src, alt, label, imgClassName, compact }: PosterProps) 
   }
 
   return (
-    <div ref={rootRef} className="h-full w-full">
+    <div ref={rootRef} className="relative h-full w-full">
+      {/* Placeholder stays until the image finishes decoding, then the <img>
+          fades in over it. Static, calm fill (no pulse) so there's no bright
+          flicker, and a slow fade so the reveal is gentle on the eyes. */}
+      {!loaded && <div className="absolute inset-0 bg-elevated" />}
       <img
         src={src}
         alt={alt}
         loading="lazy"
         decoding="async"
+        onLoad={() => setLoaded(true)}
         onError={() => setErrored(true)}
-        className={imgClassName ?? "h-full w-full object-cover"}
+        className={cn(
+          imgClassName ?? "h-full w-full object-cover",
+          "transition-opacity duration-[900ms] ease-out",
+          loaded ? "opacity-100" : "opacity-0",
+        )}
       />
     </div>
   );

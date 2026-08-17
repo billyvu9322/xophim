@@ -24,3 +24,15 @@ createRoot(rootEl).render(
     </GoogleOAuthProvider>
   </StrictMode>,
 );
+
+// Dismiss the boot splash (index.html) once React has mounted. A short minimum
+// keeps it from flickering on fast loads; skeletons then handle per-page loading.
+const splash = document.getElementById("app-splash");
+if (splash) {
+  window.setTimeout(() => {
+    splash.classList.add("app-splash--hidden");
+    splash.addEventListener("transitionend", () => splash.remove(), {
+      once: true,
+    });
+  }, 600);
+}
