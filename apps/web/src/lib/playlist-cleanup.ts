@@ -47,23 +47,6 @@ function isInterstitialDateRange(line: string): boolean {
   );
 }
 
-// Sum of #EXTINF segment durations (seconds) held in the pending-tag buffer.
-function extinfSeconds(tags: string[]): number {
-  for (const tag of tags) {
-    const m = /^#EXTINF:\s*([\d.]+)/i.exec(tag.trim());
-    if (m?.[1]) return Number.parseFloat(m[1]) || 0;
-  }
-  return 0;
-}
-
-// A content "island" this short between two ad breaks is almost always ad-server
-// junk (bumpers/transition frames), not movie footage. Dropping it merges the
-// two ad breaks into ONE discontinuity instead of two — each discontinuity is a
-// PTS reset where the browser's MSE audio splicer fails to trim ("Skipping audio
-// splice trimming ... need at least 1000us"), producing an audible crackle. Fewer
-// junctions = fewer crackles. Kept small so no perceptible real content is lost.
-const ISLAND_MERGE_MAX_SEC = 3;
-
 export function cleanupHlsPlaylist(playlist: string, playlistUrl: string): string {
   const lines = playlist.split(/\r?\n/);
   // Master playlists reference variant playlists that legitimately live in
@@ -82,35 +65,11 @@ export function cleanupHlsPlaylist(playlist: string, playlistUrl: string): strin
   // (endless re-fetch of the same segment, no seeking) unless a discontinuity
   // tells it to reset the timeline. Leading/trailing ones are still dropped.
   let pendingDiscontinuity = false;
-  // True only when the pending discontinuity was caused by an AD removal (vs. an
-  // original in-content discontinuity) — gates island merging to ad↔ad gaps only.
-  let pendingDiscFromAd = false;
   let emittedSegment = false;
 
-  // Track the content island emitted right after an ad removal so a following ad
-  // can retroactively drop it (merge the two ad breaks). islandStartOutputIdx
-  // points at output BEFORE that island's discontinuity, so rollback removes both.
-  let islandAfterAd = false;
-  let islandStartOutputIdx = -1;
-  let islandSeconds = 0;
-
   const dropAd = () => {
-    // Adjacent-ad merge: if the island since the previous ad is short, discard it
-    // (and its discontinuity) so the two ad breaks collapse to a single junction.
-    if (
-      islandAfterAd &&
-      islandStartOutputIdx >= 0 &&
-      islandSeconds > 0 &&
-      islandSeconds <= ISLAND_MERGE_MAX_SEC
-    ) {
-      output.length = islandStartOutputIdx;
-    }
-    islandAfterAd = false;
-    islandStartOutputIdx = -1;
-    islandSeconds = 0;
     pendingSegmentTags = [];
     pendingDiscontinuity = true;
-    pendingDiscFromAd = true;
   };
 
   for (const rawLine of lines) {
@@ -125,21 +84,15 @@ export function cleanupHlsPlaylist(playlist: string, playlistUrl: string): strin
     }
     if (isCueIn(line)) {
       inAdBreak = false;
-      dropAd();
+      pendingSegmentTags = [];
+      pendingDiscontinuity = true;
       continue;
     }
     if (isInterstitialDateRange(line)) continue;
 
     // 2) Buffer discontinuities — emit at most one at each content junction.
-    // An ORIGINAL in-content discontinuity is a real content junction, so it
-    // closes any post-ad island (that island is no longer ad↔ad bracketed and
-    // must not be merged away).
     if (line.toUpperCase().startsWith("#EXT-X-DISCONTINUITY")) {
       pendingDiscontinuity = true;
-      pendingDiscFromAd = false;
-      islandAfterAd = false;
-      islandStartOutputIdx = -1;
-      islandSeconds = 0;
       pendingSegmentTags = [];
       continue;
     }
@@ -167,21 +120,13 @@ export function cleanupHlsPlaylist(playlist: string, playlistUrl: string): strin
       }
       // Kept segment — emit a single discontinuity if an ad was removed since
       // the previous kept segment (never leading, never trailing).
-      const segSeconds = extinfSeconds(pendingSegmentTags);
       if (pendingDiscontinuity && emittedSegment) {
-        // Start of a new content run after a removed junction. Remember where it
-        // begins so a following ad can merge the whole (short) island away.
-        islandStartOutputIdx = output.length;
-        islandAfterAd = pendingDiscFromAd;
-        islandSeconds = 0;
         output.push("#EXT-X-DISCONTINUITY");
       }
       pendingDiscontinuity = false;
-      pendingDiscFromAd = false;
       output.push(...pendingSegmentTags, resolved);
       pendingSegmentTags = [];
       emittedSegment = true;
-      if (islandAfterAd) islandSeconds += segSeconds;
       continue;
     }
 

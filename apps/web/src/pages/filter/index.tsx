@@ -9,8 +9,15 @@ import {
 } from "@/components/MovieFilter";
 import { ErrorState, EmptyState } from "@/components/ui/states";
 import { MovieGridSkeleton } from "@/components/ui/skeletons";
-import { useMovieList, useFilters } from "@/hooks/catalog";
+import {
+  useMovieList,
+  useFilters,
+  useImdbSortedList,
+  IMDB_POOL_SIZE,
+} from "@/hooks/catalog";
 import type { ListParams } from "@/apis/catalog-api";
+
+const PAGE_SIZE = 28;
 
 // The dedicated filter page keeps its whole state in the URL so results are
 // shareable and survive reload / back. Multi-selects are stored comma-joined.
@@ -58,14 +65,10 @@ export function FilterPage() {
   );
 
   const sortOpt = SORT_OPTIONS[filter.sortIdx] ?? SORT_OPTIONS[0];
+  const imdbMode = sortOpt.imdb;
 
-  const params: ListParams = {
-    page: search.page,
-    // 28 = 4 full rows on the 7-col desktop grid (default 24 leaves a short
-    // last row of 3). The grid still wraps cleanly at smaller breakpoints.
-    limit: 28,
-    sort_field: sortOpt.field,
-    sort_type: sortOpt.type,
+  // The OR-filter constraints (category/country/year/lang) shared by both paths.
+  const filterParams = {
     ...(filter.category.length ? { category: filter.category.join(",") } : {}),
     ...(filter.country.length ? { country: filter.country.join(",") } : {}),
     ...(filter.year.length ? { year: filter.year.join(",") } : {}),
@@ -74,22 +77,35 @@ export function FilterPage() {
       : {}),
   };
 
-  const { data, isLoading, isError } = useMovieList(filter.type, params);
+  // Normal path: server pagination (28 = 4 full rows on the 7-col grid).
+  const serverParams: ListParams = {
+    page: search.page,
+    limit: PAGE_SIZE,
+    sort_field: sortOpt.field,
+    sort_type: sortOpt.type,
+    ...filterParams,
+  };
+  const listQuery = useMovieList(filter.type, serverParams, !imdbMode);
 
-  // "Điểm IMDb" has no server sort — order the current page client-side (stable
-  // via slug tiebreaker). With server paging it only sorts within a page.
+  // IMDb path: fetch a bounded pool, sort the whole pool, paginate client-side.
+  const imdbQuery = useImdbSortedList(filter.type, filterParams, imdbMode);
+
+  const isLoading = imdbMode ? imdbQuery.isLoading : listQuery.isLoading;
+  const isError = imdbMode ? imdbQuery.isError : listQuery.isError;
+
   const movies = useMemo(() => {
-    const items = data?.items ?? [];
-    if (!sortOpt.imdb) return items;
-    return [...items].sort(
-      (a, b) =>
-        (b.score?.imdb ?? 0) - (a.score?.imdb ?? 0) ||
-        a.slug.localeCompare(b.slug),
-    );
-  }, [data, sortOpt.imdb]);
+    if (imdbMode) {
+      const pool = imdbQuery.data ?? [];
+      const start = (search.page - 1) * PAGE_SIZE;
+      return pool.slice(start, start + PAGE_SIZE);
+    }
+    return listQuery.data?.items ?? [];
+  }, [imdbMode, imdbQuery.data, listQuery.data, search.page]);
 
-  const page = data?.pagination.page ?? search.page;
-  const totalPages = data?.pagination.totalPages ?? 1;
+  const page = search.page;
+  const totalPages = imdbMode
+    ? Math.max(1, Math.ceil((imdbQuery.data?.length ?? 0) / PAGE_SIZE))
+    : (listQuery.data?.pagination.totalPages ?? 1);
 
   // Applying filters resets to page 1; paging keeps the rest of the search.
   function onApply(v: FilterValue) {
@@ -123,6 +139,13 @@ export function FilterPage() {
         showType
         defaultOpen
       />
+
+      {imdbMode && (
+        <p className="text-xs text-muted">
+          Xếp hạng theo điểm IMDb trong {IMDB_POOL_SIZE} phim mới nhất khớp bộ lọc
+          (nguồn dữ liệu không hỗ trợ sắp xếp IMDb toàn kho).
+        </p>
+      )}
 
       {isLoading ? (
         <MovieGridSkeleton />
