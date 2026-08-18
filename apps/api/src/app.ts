@@ -15,6 +15,7 @@ import { ZodError } from "zod";
 import { env, type AppEnv } from "./config/env.js";
 import { db, type Database } from "./db/index.js";
 import { registerRoutes } from "./routes.js";
+import { seedAdminUser } from "./auth/admin-seed.js";
 import { registerSpa } from "./seo/spa.js";
 
 declare module "fastify" {
@@ -37,6 +38,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.decorate("env", env);
   app.decorate("db", db);
+  await seedAdminUser(db);
 
   // Zod is the single source of truth for request/response I/O.
   app.setValidatorCompiler(validatorCompiler);
@@ -53,7 +55,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(cors, {
     origin: env.CORS_ORIGIN,
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization", "x-analysis-password"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   });
   await app.register(cookie);
   await app.register(rateLimit, { max: 100, timeWindow: "1 minute" });

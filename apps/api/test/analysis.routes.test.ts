@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { toAnalysisCount } from "../src/analysis/routes.js";
 import * as schema from "../src/db/schema/index.js";
+import { createSession } from "../src/auth/session.js";
 
 vi.mock("../src/db/index.js", async () => {
   const { buildMemDb } = await import("./helpers/memdb.js");
@@ -24,18 +25,42 @@ beforeEach(async () => {
   await memDb.delete(schema.users);
 });
 
+async function authCookie(role: "admin" | "user") {
+  const [user] = await memDb
+    .insert(schema.users)
+    .values({
+      username: `${role}-user`,
+      email: `${role}@example.com`,
+      displayName: role,
+      role,
+    })
+    .returning();
+  const sid = await createSession(memDb, { userId: user!.id, ttlDays: 1 });
+  return `sid=${sid}`;
+}
+
 describe("GET /v1/analysis/overview", () => {
   it("coerces database aggregate counts returned as strings", () => {
     expect(toAnalysisCount("1")).toBe(1);
   });
 
-  it("rejects requests without the analysis password", async () => {
+  it("rejects requests without a login session", async () => {
     const res = await app.inject({ method: "GET", url: "/v1/analysis/overview" });
 
     expect(res.statusCode).toBe(401);
   });
 
-  it("returns user and watch activity metrics with the analysis password", async () => {
+  it("rejects non-admin users", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/analysis/overview",
+      headers: { cookie: await authCookie("user") },
+    });
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("returns user and watch activity metrics for admins", async () => {
     const [user] = await memDb
       .insert(schema.users)
       .values({
@@ -72,17 +97,17 @@ describe("GET /v1/analysis/overview", () => {
     const res = await app.inject({
       method: "GET",
       url: "/v1/analysis/overview",
-      headers: { "x-analysis-password": "binhhp20" },
+      headers: { cookie: await authCookie("admin") },
     });
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.summary.totalUsers).toBe(1);
-    expect(body.summary.activeSessions).toBe(1);
+    expect(body.summary.totalUsers).toBe(2);
+    expect(body.summary.activeSessions).toBe(2);
     expect(body.summary.usersWithHistory).toBe(1);
-    expect(body.users[0].email).toBe("alice@example.com");
-    expect(body.users[0].watchProgressCount).toBe(1);
-    expect(body.users[0].watchlistCount).toBe(1);
+    const alice = body.users.find((item: { email: string }) => item.email === "alice@example.com");
+    expect(alice?.watchProgressCount).toBe(1);
+    expect(alice?.watchlistCount).toBe(1);
     expect(body.topMovies[0].name).toBe("Movie A");
     expect(body.recentActivity[0].movieName).toBe("Movie A");
   });

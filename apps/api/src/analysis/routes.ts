@@ -4,8 +4,6 @@ import { z } from "zod";
 
 import { sessions, users, watchlist, watchProgress } from "../db/schema/index.js";
 
-const analysisPasswordHeader = "x-analysis-password";
-
 const userSchema = z.object({
   id: z.string().uuid(),
   username: z.string().nullable(),
@@ -86,10 +84,10 @@ function posterUrl(snapshot: unknown): string {
 }
 
 export const registerAnalysisRoutes: FastifyPluginAsyncZod = async (app) => {
+  app.addHook("preHandler", app.requireAuth);
   app.addHook("preHandler", async (request, reply) => {
-    const password = request.headers[analysisPasswordHeader];
-    if (password !== app.env.DASHBOARD_ANALYSIS_PASSWORD) {
-      return reply.code(401).send({ error: "Unauthorized", message: "Invalid dashboard password" });
+    if (request.user?.role !== "admin") {
+      return reply.code(403).send({ error: "Forbidden", message: "Admin access required" });
     }
   });
 

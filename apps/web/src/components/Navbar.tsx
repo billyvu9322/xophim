@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ChevronDown,
+  LayoutDashboard,
   LogOut,
   Menu,
   Search,
@@ -152,6 +153,15 @@ export function Navbar() {
                   >
                     Lịch Sử Xem
                   </Link>
+                  {user.role === "admin" && (
+                    <Link
+                      to="/dashboard/analysis"
+                      onClick={() => setAcctOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-silver hover:bg-elevated hover:text-white"
+                    >
+                      <LayoutDashboard className="h-4 w-4" /> Dashboard
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
                       setAcctOpen(false);

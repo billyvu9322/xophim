@@ -22,6 +22,26 @@ const SUPPORTS_MSE = typeof window !== "undefined" && "MediaSource" in window;
 
 const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2] as const;
 
+type HlsDebugEventMap = {
+  hlsLevelSwitched: { level: number };
+  hlsFragChanged: { frag: { start: number; end: number } };
+  hlsBufferAppending: { type: string };
+  hlsError: unknown;
+};
+
+type HlsDebugPlayer = {
+  on<EventName extends keyof HlsDebugEventMap>(
+    eventName: EventName,
+    handler: (eventName: EventName, data: HlsDebugEventMap[EventName]) => void,
+  ): void;
+};
+
+declare global {
+  interface Window {
+    __hls?: HlsDebugPlayer;
+  }
+}
+
 export interface VideoPlayerHandle {
   play: () => void;
   pause: () => void;
@@ -640,11 +660,11 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                 enableWorker: false,
                 lowLatencyMode: false,
                 startFragPrefetch: false,
-                capLevelToPlayerSize: true,
-                capLevelOnFPSDrop: true,
-                backBufferLength: 15,
-                maxBufferLength: 30,
-                maxMaxBufferLength: 60,
+                capLevelToPlayerSize: false,
+                capLevelOnFPSDrop: false,
+                backBufferLength: 5,
+                maxBufferLength: 90,
+                maxMaxBufferLength: 120,
                 maxBufferSize: 80 * 1000 * 1000,
                 // Faster start: skip the low-level "bandwidth probe" fragment and
                 // pick an initial level from a realistic estimate (~1.5 Mbps)

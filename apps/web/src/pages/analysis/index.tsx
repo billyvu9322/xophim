@@ -1,11 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Clock3, Eye, Film, Lock, RefreshCw, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Activity, Clock3, Eye, Film, RefreshCw, Users } from "lucide-react";
 import { analysisApi } from "@/apis/analysis-api";
 import type { AnalysisOverview } from "@/apis/types/analysis-types";
 import { cn } from "@/lib/utils";
-
-const PASSWORD_KEY = "xophim.analysis.password";
 
 function formatDate(value: string | null): string {
   if (!value) return "-";
@@ -60,48 +57,90 @@ function StatCard({
   );
 }
 
-function PasswordGate({
-  error,
-  onUnlock,
-}: {
-  error?: string;
-  onUnlock: (password: string) => void;
-}) {
-  const [password, setPassword] = useState("");
+function SkeletonBlock({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-xl bg-white/10", className)} />;
+}
+
+function DashboardSkeleton() {
   return (
-    <main className="min-h-[70vh] px-4 py-16">
-      <div className="mx-auto max-w-md rounded-3xl border border-white/10 bg-[#111116]/90 p-7 shadow-2xl shadow-black/40 backdrop-blur-xl">
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gold text-[#111]">
-          <Lock className="h-7 w-7" />
+    <main className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#17171f] via-[#111116] to-black p-6 shadow-2xl shadow-black/30">
+        <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-gold/10 blur-3xl" />
+        <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div className="w-full max-w-2xl space-y-4">
+            <SkeletonBlock className="h-4 w-40 bg-gold/20" />
+            <SkeletonBlock className="h-11 w-72 max-w-full" />
+            <SkeletonBlock className="h-5 w-full max-w-xl" />
+            <SkeletonBlock className="h-5 w-3/4 max-w-md" />
+          </div>
+          <SkeletonBlock className="h-11 w-28" />
         </div>
-        <h1 className="mt-5 text-center text-2xl font-black text-white">Dashboard Analysis</h1>
-        <p className="mt-2 text-center text-sm text-slate-300">
-          Nhập mật khẩu quản trị để xem thống kê người dùng và hoạt động xem phim.
-        </p>
-        <form
-          className="mt-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (password.trim()) onUnlock(password.trim());
-          }}
-        >
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Mật khẩu dashboard"
-            className="h-12 w-full rounded-xl border border-white/10 bg-black/30 px-4 text-white outline-none transition focus:border-gold/70"
-          />
-          {error && (
-            <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-              {error}
-            </p>
-          )}
-          <button className="h-12 w-full rounded-xl bg-gold font-bold text-[#111] transition hover:brightness-110">
-            Truy cập
-          </button>
-        </form>
-      </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {Array.from({ length: 5 }, (_, index) => (
+          <div key={index} className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 shadow-2xl shadow-black/20 backdrop-blur-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-3">
+                <SkeletonBlock className="h-4 w-24" />
+                <SkeletonBlock className="h-9 w-16" />
+              </div>
+              <SkeletonBlock className="h-11 w-11" />
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl">
+          <SkeletonBlock className="h-7 w-48" />
+          <div className="mt-5 space-y-4">
+            {Array.from({ length: 6 }, (_, index) => (
+              <div key={index} className="flex items-center gap-3 border-b border-white/5 pb-3">
+                <SkeletonBlock className="h-9 w-9 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <SkeletonBlock className="h-4 w-44" />
+                  <SkeletonBlock className="h-3 w-56 max-w-full" />
+                </div>
+                <SkeletonBlock className="hidden h-4 w-20 sm:block" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl">
+          <SkeletonBlock className="h-7 w-44" />
+          <div className="mt-4 space-y-3">
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className="flex items-center gap-3 rounded-xl bg-black/25 p-2 ring-1 ring-white/5">
+                <SkeletonBlock className="h-4 w-6" />
+                <SkeletonBlock className="h-14 w-10" />
+                <div className="flex-1 space-y-2">
+                  <SkeletonBlock className="h-4 w-40 max-w-full" />
+                  <SkeletonBlock className="h-3 w-28" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl">
+        <SkeletonBlock className="h-7 w-56" />
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="flex gap-3 rounded-xl bg-black/25 p-3 ring-1 ring-white/5">
+              <SkeletonBlock className="h-20 w-14" />
+              <div className="flex-1 space-y-2">
+                <SkeletonBlock className="h-4 w-44 max-w-full" />
+                <SkeletonBlock className="h-3 w-36" />
+                <SkeletonBlock className="h-3 w-48 max-w-full" />
+                <SkeletonBlock className="h-3 w-24" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
@@ -200,7 +239,7 @@ function Dashboard({ data, onRefresh, refreshing }: { data: AnalysisOverview; on
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl">
         <h2 className="text-xl font-bold text-white">Hoạt động xem gần đây</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="mt-4 grid max-h-[min(640px,calc(100vh-10rem))] gap-3 overflow-y-auto pr-1 md:grid-cols-2">
           {data.recentActivity.map((item) => (
             <div key={item.id} className="flex gap-3 rounded-xl bg-black/25 p-3 ring-1 ring-white/5">
               <img src={item.posterUrl} alt="" className="h-20 w-14 rounded object-cover" />
@@ -221,32 +260,24 @@ function Dashboard({ data, onRefresh, refreshing }: { data: AnalysisOverview; on
 }
 
 export function AnalysisPage() {
-  const [password, setPassword] = useState(() => sessionStorage.getItem(PASSWORD_KEY) ?? "");
   const overview = useQuery({
-    queryKey: ["analysis", "overview", password],
-    queryFn: () => analysisApi.overview(password),
-    enabled: password.length > 0,
+    queryKey: ["analysis", "overview"],
+    queryFn: () => analysisApi.overview(),
     retry: false,
   });
 
-  useEffect(() => {
-    if (overview.isError) sessionStorage.removeItem(PASSWORD_KEY);
-  }, [overview.isError]);
-
-  if (!password || overview.isError) {
+  if (overview.isError) {
     return (
-      <PasswordGate
-        error={overview.isError ? "Không truy cập được dashboard. Kiểm tra mật khẩu hoặc API đã restart chưa." : undefined}
-        onUnlock={(value) => {
-          sessionStorage.setItem(PASSWORD_KEY, value);
-          setPassword(value);
-        }}
-      />
+      <main className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="rounded-3xl border border-danger/40 bg-danger/10 p-6 text-danger">
+          Không có quyền truy cập dashboard. Hãy đăng nhập bằng tài khoản admin.
+        </div>
+      </main>
     );
   }
 
   if (overview.isLoading || !overview.data) {
-    return <main className="grid min-h-[60vh] place-items-center text-slate-300">Đang tải dashboard...</main>;
+    return <DashboardSkeleton />;
   }
 
   return <Dashboard data={overview.data} onRefresh={() => void overview.refetch()} refreshing={overview.isFetching} />;

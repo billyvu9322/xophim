@@ -105,14 +105,14 @@ export async function loginUser(
 
   const user = rows[0];
   if (!user || !user.passwordHash) {
-    const err = new Error("Invalid credentials") as Error & { statusCode: number };
+    const err = new Error("Tên đăng nhập/email hoặc mật khẩu không đúng") as Error & { statusCode: number };
     err.statusCode = 401;
     throw err;
   }
 
   const valid = await verifyPassword(input.password, user.passwordHash);
   if (!valid) {
-    const err = new Error("Invalid credentials") as Error & { statusCode: number };
+    const err = new Error("Tên đăng nhập/email hoặc mật khẩu không đúng") as Error & { statusCode: number };
     err.statusCode = 401;
     throw err;
   }
